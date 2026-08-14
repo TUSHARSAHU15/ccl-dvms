@@ -1,0 +1,91 @@
+{% block content %}
+<div class="container px-4">
+
+  <!-- Header -->
+  <div class="text-center my-4">
+    <span class="ccl-logo-box fs-5">CCL</span>
+    <h3 class="fw-bold mt-2 mb-1" style="color: var(--ccl-navy-primary);">
+      Visitor Self-Service Kiosk & Pass Verification
+    </h3>
+    <p class="text-muted">Central Coalfields Limited Gate Pass Lookup & Online Visitor Registration</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    
+    <!-- Pass Lookup Card -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-dark text-white fw-bold py-3">
+          <i class="bi bi-search me-2 text-warning"></i>Track Visitor Pass Status
+        </div>
+        <div class="card-body p-4">
+          <p class="text-muted small mb-3">Already registered? Enter your Mobile Number or Pass Code to view your digital QR pass badge.</p>
+          
+          <form id="kioskLookupForm" onsubmit="lookupVisitorPass(event)">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Pass Code or Mobile Number</label>
+              <input type="text" id="kioskSearchInput" class="form-control form-control-lg" placeholder="e.g. CCL-PASS-801 or 9876543210" required>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">
+              <i class="bi bi-ticket-perforated me-1"></i> Lookup Visitor Pass
+            </button>
+          </form>
+
+          <div id="kioskResultBox" class="mt-4" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Self-Registration Banner Card -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0 h-100 bg-gradient text-white" style="background-color: var(--ccl-navy-primary);">
+        <div class="card-body p-4 d-flex flex-column justify-content-between">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-qr-code-scan fs-1 text-warning"></i>
+              <h4 class="fw-bold mb-0">Arriving at Gate?</h4>
+            </div>
+            <p class="lh-base">Visitors arriving at Central Coalfields Limited headquarters, workshops, or mine offices can pre-register using our security kiosk for rapid clearance.</p>
+            <ul class="list-unstyled small gap-2 d-flex flex-column text-warning">
+              <li><i class="bi bi-check-circle-fill me-2"></i> Instant QR Code generation</li>
+              <li><i class="bi bi-check-circle-fill me-2"></i> Host employee notification & approval</li>
+              <li><i class="bi bi-check-circle-fill me-2"></i> Valid across Gate 1, Gate 2 & Gate 3</li>
+            </ul>
+          </div>
+          <div class="mt-4">
+            <a href="/security" class="btn btn-warning btn-lg fw-bold w-100 shadow">
+              <i class="bi bi-person-plus-fill me-2"></i>Proceed to Security Gate Registration
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function lookupVisitorPass(e) {
+    e.preventDefault();
+    const query = document.getElementById("kioskSearchInput").value.trim();
+    const resultBox = document.getElementById("kioskResultBox");
+    
+    // Perform lookup
+    if (query) {
+      resultBox.style.display = "block";
+      resultBox.innerHTML = `
+        <div class="p-3 bg-light rounded-3 border">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-dark">Query Match: ${query}</span>
+            <span class="badge bg-success">Valid Pass</span>
+          </div>
+          <p class="small text-muted mb-3">Your Digital QR Visitor Pass is active and ready for entry scan.</p>
+          <a href="/pass/CCL-PASS-801" class="btn btn-sm btn-dark w-100 fw-bold">
+            <i class="bi bi-qr-code me-1"></i> View Scannable Pass Badge
+          </a>
+        </div>
+      `;
+    }
+  }
+</script>
+{% endblock %}

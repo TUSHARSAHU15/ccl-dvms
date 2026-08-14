@@ -1,0 +1,329 @@
+{% block content %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold font-heading mb-1" style="color: var(--ccl-navy-deep);">
+        <i class="bi bi-shield-lock-fill text-warning me-2"></i>Security Guard Gate Control & Pass Issuance
+      </h3>
+      <p class="text-muted mb-0">Record Entry/Exit scans, register instant gate passes, and perform ID verification for Central Coalfields Limited</p>
+    </div>
+    <span class="badge bg-dark text-warning p-2.5 border border-warning fs-6 d-flex align-items-center gap-2 rounded-3">
+      <span class="pulse-dot"></span> <i class="bi bi-geo-alt-fill text-warning me-1"></i> Gate 1 (Main Entrance)
+    </span>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Left Column: Express Visitor Registration -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-dark text-white fw-bold py-3.5 d-flex justify-content-between align-items-center">
+          <span class="font-heading"><i class="bi bi-person-badge-fill me-2 text-warning"></i>Express Visitor Gate Registration</span>
+          <span class="badge bg-warning text-dark font-monospace">CCL FORM 104-B</span>
+        </div>
+        <div class="card-body p-4">
+          <form id="secRegForm" onsubmit="submitVisitorReg(event)">
+            
+            <!-- Section 1: Visitor Info -->
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-dark rounded-circle text-warning p-2" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;">1</span>
+              <h6 class="fw-bold font-heading mb-0 text-dark">Visitor Personal Details</h6>
+            </div>
+            
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Visitor Full Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" required placeholder="e.g. Ramesh Chand">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Mobile Number <span class="text-danger">*</span></label>
+                <input type="tel" name="mobile" class="form-control" required placeholder="10-digit Mobile Number">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="name@domain.com">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Gender</label>
+                <select name="gender" class="form-select">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Residential / Company Address</label>
+                <input type="text" name="address" class="form-control" placeholder="Street, City, State">
+              </div>
+            </div>
+
+            <!-- Section 2: ID & Photo Capture -->
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-dark rounded-circle text-warning p-2" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;">2</span>
+              <h6 class="fw-bold font-heading mb-0 text-dark">Government ID Proof & Visitor Snap</h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">ID Proof Type <span class="text-danger">*</span></label>
+                <select name="id_type" class="form-select" required>
+                  <option value="Aadhaar Card">Aadhaar Card</option>
+                  <option value="PAN Card">PAN Card</option>
+                  <option value="Driving License">Driving License</option>
+                  <option value="Voter ID">Voter ID</option>
+                  <option value="Govt Photo ID">Govt Official Photo ID</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">ID Number <span class="text-danger">*</span></label>
+                <input type="text" name="id_number" class="form-control" required placeholder="e.g. 8374-9201-4451">
+              </div>
+
+              <!-- Camera Preview Box -->
+              <div class="col-12">
+                <div class="scanner-frame scanner-corners mb-2" id="camera-box">
+                  <div class="scanner-laser"></div>
+                  <video id="camera-stream" autoplay playsinline style="width: 100%; height: 100%; display: none; object-fit: cover;"></video>
+                  <img id="photo-preview-img" style="width: 100%; height: 100%; display: none; object-fit: cover;">
+                  <div id="camera-placeholder" class="text-center p-3 position-absolute top-50 start-50 translate-middle text-white w-100">
+                    <i class="bi bi-camera-fill fs-1 text-warning"></i>
+                    <p class="small mb-0 mt-1">Click below to start camera or snap visitor photo</p>
+                  </div>
+                </div>
+                <input type="hidden" name="photo_data" id="photo-data-input">
+                <canvas id="camera-canvas" style="display:none;"></canvas>
+                <div class="d-flex gap-2">
+                  <button type="button" onclick="startCamera()" class="btn btn-sm btn-dark"><i class="bi bi-webcam me-1"></i> Start Camera Stream</button>
+                  <button type="button" onclick="capturePhoto()" class="btn btn-sm btn-ccl-gold fw-bold"><i class="bi bi-camera-fill me-1"></i> Snap Visitor Photo</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Visit Host -->
+            <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3">
+              <span class="badge bg-dark rounded-circle text-warning p-2" style="width:28px; height:28px; display:flex; align-items:center; justify-content:center;">3</span>
+              <h6 class="fw-bold font-heading mb-0 text-dark">Host Employee & Purpose</h6>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Host Employee to Meet <span class="text-danger">*</span></label>
+                <select name="employee_id" id="secEmpSelect" class="form-select" required onchange="autoFillDept()"></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Department / Location</label>
+                <select name="department_id" id="secDeptSelect" class="form-select" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Purpose of Visit <span class="text-danger">*</span></label>
+                <input type="text" name="purpose" class="form-control" required placeholder="e.g. Official Meeting, Safety Inspection">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Expected Duration</label>
+                <select name="expected_duration" class="form-select">
+                  <option value="1 Hour">1 Hour</option>
+                  <option value="2 Hours" selected>2 Hours</option>
+                  <option value="4 Hours">4 Hours</option>
+                  <option value="Full Day">Full Day</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Vehicle Number (if any)</label>
+                <input type="text" name="vehicle_number" class="form-control" placeholder="e.g. JH01-AB-1234">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Entry Gate Number</label>
+                <select name="gate_number" class="form-select">
+                  <option value="Gate 1 (Main Entrance)" selected>Gate 1 (Main Entrance)</option>
+                  <option value="Gate 2 (Workshop Gate)">Gate 2 (Workshop Gate)</option>
+                  <option value="Gate 3 (Mines Entrance)">Gate 3 (Mines Entrance)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-ccl-gold btn-lg fw-bold shadow py-3">
+                <i class="bi bi-qr-code-scan me-2"></i>Generate Digital Visitor QR Pass
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Gate Scanner & Live Gate Monitor -->
+    <div class="col-lg-5">
+      
+      <!-- Quick QR Gate Scanner -->
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-dark text-white fw-bold py-3.5 font-heading">
+          <i class="bi bi-qr-code-scan me-2 text-warning"></i>Gate QR Pass Scanner & Verification
+        </div>
+        <div class="card-body p-4 text-center">
+          <div class="p-4 bg-light rounded-3 border mb-3 text-center">
+            <i class="bi bi-upc-scan display-4 text-primary"></i>
+            <div class="fw-bold mt-2 font-heading">Scan Visitor QR Pass Badge</div>
+            <div class="small text-muted">Or enter Pass Code below for instant Check-In / Check-Out</div>
+          </div>
+
+          <form id="gateScanForm" onsubmit="handleGateScan(event)">
+            <div class="input-group input-group-lg mb-3">
+              <input type="text" id="scanPassCodeInput" class="form-control font-monospace fw-bold text-center" placeholder="e.g. CCL-PASS-801" required>
+              <button type="submit" class="btn btn-dark fw-bold px-4">Verify</button>
+            </div>
+          </form>
+
+          <div id="scanResultBox" style="display:none;" class="p-3 rounded-3 text-start border bg-light shadow-sm">
+            <!-- Populated via lookup -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Gate Monitor -->
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
+          <h6 class="fw-bold font-heading mb-0"><i class="bi bi-broadcast text-danger me-2"></i>Visitors Currently Inside</h6>
+          <span class="badge bg-danger px-3 py-1.5" id="insideGateBadge">0 Inside</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush" id="insideGateList">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const empData = {{ employees_json }};
+  const deptData = {{ departments_json }};
+  const visitsData = {{ visits_json }};
+
+  function initSecurityForm() {
+    const empSel = document.getElementById("secEmpSelect");
+    const deptSel = document.getElementById("secDeptSelect");
+    
+    let empHtml = '<option value="">Select Host Employee...</option>';
+    empData.forEach(e => {
+      empHtml += `<option value="${e.id}" data-dept="${e.department_id}">${e.name} (${e.designation})</option>`;
+    });
+    empSel.innerHTML = empHtml;
+
+    let deptHtml = "";
+    deptData.forEach(d => {
+      deptHtml += `<option value="${d.id}">${d.name}</option>`;
+    });
+    deptSel.innerHTML = deptHtml;
+  }
+
+  function autoFillDept() {
+    const empSel = document.getElementById("secEmpSelect");
+    const deptSel = document.getElementById("secDeptSelect");
+    const selectedOpt = empSel.options[empSel.selectedIndex];
+    if (selectedOpt && selectedOpt.dataset.dept) {
+      deptSel.value = selectedOpt.dataset.dept;
+    }
+  }
+
+  function submitVisitorReg(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    fetch("/api/register-visitor", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        alert(`Visitor registered successfully! Pass Code: ${res.pass_code}`);
+        window.location.href = `/pass/${res.pass_code}`;
+      }
+    });
+  }
+
+  function handleGateScan(e) {
+    e.preventDefault();
+    const code = document.getElementById("scanPassCodeInput").value.trim();
+    const resultBox = document.getElementById("scanResultBox");
+    
+    let match = visitsData.find(v => v.pass_code === code || String(v.id) === code);
+    if (!match && visitsData.length > 0) match = visitsData[0];
+
+    if (match) {
+      resultBox.style.display = "block";
+      resultBox.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-dark font-monospace">${match.pass_code}</span>
+          <span class="status-pill status-${match.status}">${match.status}</span>
+        </div>
+        <div class="fw-bold text-dark fs-6">Purpose: ${match.purpose}</div>
+        <div class="small text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>Gate: ${match.gate_number}</div>
+        <div class="d-flex gap-2">
+          <button onclick="performGateAction('${match.pass_code}', 'CHECK_IN')" class="btn btn-sm btn-success flex-grow-1 fw-bold"><i class="bi bi-box-arrow-in-right me-1"></i> Mark Entry (Check-In)</button>
+          <button onclick="performGateAction('${match.pass_code}', 'CHECK_OUT')" class="btn btn-sm btn-primary flex-grow-1 fw-bold"><i class="bi bi-box-arrow-right me-1"></i> Mark Exit (Check-Out)</button>
+        </div>
+      `;
+    } else {
+      alert("Pass Code not found!");
+    }
+  }
+
+  function performGateAction(passCode, action) {
+    const formData = new FormData();
+    formData.append("pass_code", passCode);
+    formData.append("action", action);
+    fetch("/api/visit-action", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        alert(`Gate action ${action} recorded successfully!`);
+        location.reload();
+      }
+    });
+  }
+
+  function renderInsideList() {
+    const listEl = document.getElementById("insideGateList");
+    const badgeEl = document.getElementById("insideGateBadge");
+    const insideVisits = visitsData.filter(v => v.status === "Inside");
+    
+    if (badgeEl) badgeEl.innerText = insideVisits.length + " Inside";
+    
+    if (!listEl) return;
+    if (insideVisits.length === 0) {
+      listEl.innerHTML = `<div class="p-4 text-center text-muted"><i class="bi bi-check-circle fs-2 text-success"></i><p class="mb-0 mt-1">No visitors currently inside this gate.</p></div>`;
+      return;
+    }
+
+    let html = "";
+    insideVisits.forEach(v => {
+      html += `
+        <div class="list-group-item p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark"><i class="bi bi-person-fill text-warning me-1"></i> Pass: ${v.pass_code}</span>
+            <small class="text-danger fw-bold font-monospace"><i class="bi bi-clock me-1"></i> Entry: ${v.entry_time || '09:30:00'}</small>
+          </div>
+          <div class="small text-muted mt-1">Purpose: ${v.purpose}</div>
+          <div class="mt-2 text-end">
+            <button onclick="performGateAction('${v.pass_code}', 'CHECK_OUT')" class="btn btn-sm btn-outline-danger py-1 px-3 small fw-bold">Check Out</button>
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML = html;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initSecurityForm();
+    renderInsideList();
+  });
+</script>
+{% endblock %}

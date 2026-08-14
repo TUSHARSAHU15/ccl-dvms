@@ -1,0 +1,170 @@
+{% block content %}
+<div class="container-fluid px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold font-heading mb-1" style="color: var(--ccl-navy-deep);">
+        <i class="bi bi-person-check-fill text-warning me-2"></i>Employee Visitor Approval Inbox
+      </h3>
+      <p class="text-muted mb-0">Review pending visitor entry requests, grant host approvals, and view guest history</p>
+    </div>
+    <div class="d-flex align-items-center gap-3 bg-white p-2.5 rounded-4 shadow-sm border px-3">
+      <div class="bg-warning bg-opacity-20 text-warning p-2 rounded-circle">
+        <i class="bi bi-person-fill fs-4 text-warning"></i>
+      </div>
+      <div>
+        <div class="fw-bold lh-1 font-heading" style="font-size: 0.92rem;">Rajesh Kumar</div>
+        <small class="text-muted">General Manager (Mining) - HQ Ranchi</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Section: Pending Requests Grid -->
+  <div class="row g-4 mb-5">
+    <div class="col-12">
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3.5 d-flex justify-content-between align-items-center border-bottom-0">
+          <h5 class="fw-bold font-heading mb-0 text-dark">
+            <i class="bi bi-bell-fill me-2 text-warning"></i>Pending Visitor Gate Approvals
+          </h5>
+          <span class="badge bg-warning text-dark px-3 py-1.5 fs-6" id="pendingCountBadge">0 Requests</span>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-4" id="pendingCardsGrid">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Rejection Reason -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold font-heading"><i class="bi bi-x-circle-fill me-2"></i>Reject Visitor Pass Request</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="rejectVisitId">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Reason for Rejection <span class="text-danger">*</span></label>
+          <textarea id="rejectReasonInput" class="form-control" rows="3" required placeholder="Specify security, schedule, or authorization discrepancy reason..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" onclick="confirmRejectAction()" class="btn btn-danger fw-bold px-4">Confirm Rejection</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pendingRequests = {{ pending_requests_json }};
+
+  function renderPendingRequests() {
+    const grid = document.getElementById("pendingCardsGrid");
+    const badge = document.getElementById("pendingCountBadge");
+    
+    if (badge) badge.innerText = pendingRequests.length + " Requests";
+    if (!grid) return;
+
+    if (pendingRequests.length === 0) {
+      grid.innerHTML = `
+        <div class="col-12 text-center py-5">
+          <i class="bi bi-shield-check text-success display-3"></i>
+          <h5 class="fw-bold font-heading mt-3">All Visitor Requests Cleared!</h5>
+          <p class="text-muted">You have no pending visitor approval requests at this moment.</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    pendingRequests.forEach(req => {
+      html += `
+        <div class="col-md-6 col-xl-4">
+          <div class="card h-100 border-0 shadow-sm rounded-4 border-top border-4 border-warning overflow-hidden">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-dark font-monospace">${req.pass_code}</span>
+                <span class="status-pill status-Pending">Pending Approval</span>
+              </div>
+
+              <h5 class="fw-bold font-heading mb-1 text-dark">${req.visitor_name}</h5>
+              <div class="small text-muted mb-3"><i class="bi bi-telephone-fill me-1 text-warning"></i>${req.mobile}</div>
+
+              <div class="p-3 bg-light rounded-3 mb-3 small">
+                <div class="mb-1"><strong>ID Proof:</strong> ${req.id_type} (${req.id_number})</div>
+                <div class="mb-1"><strong>Purpose:</strong> ${req.purpose}</div>
+                <div class="mb-1"><strong>Expected Duration:</strong> ${req.expected_duration}</div>
+                <div><strong>Entry Gate:</strong> ${req.gate}</div>
+              </div>
+
+              <div class="d-flex gap-2">
+                <button onclick="approveVisit(${req.id})" class="btn btn-success flex-grow-1 fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Approve</button>
+                <button onclick="openRejectModal(${req.id})" class="btn btn-outline-danger flex-grow-1 fw-bold"><i class="bi bi-x-circle-fill me-1"></i> Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    grid.innerHTML = html;
+  }
+
+  function approveVisit(visitId) {
+    const formData = new FormData();
+    formData.append("visit_id", visitId);
+    formData.append("action", "APPROVE");
+    fetch("/api/visit-action", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        alert("Visitor Request Approved Successfully!");
+        location.reload();
+      }
+    });
+  }
+
+  function openRejectModal(visitId) {
+    document.getElementById("rejectVisitId").value = visitId;
+    const modal = new bootstrap.Modal(document.getElementById("rejectModal"));
+    modal.show();
+  }
+
+  function confirmRejectAction() {
+    const visitId = document.getElementById("rejectVisitId").value;
+    const reason = document.getElementById("rejectReasonInput").value;
+    if (!reason.trim()) {
+      alert("Please enter a rejection reason.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("visit_id", visitId);
+    formData.append("action", "REJECT");
+    formData.append("reason", reason);
+    fetch("/api/visit-action", {
+      method: "POST",
+      body: formData
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        alert("Visitor Request Rejected.");
+        location.reload();
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", renderPendingRequests);
+</script>
+{% endblock %}

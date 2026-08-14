@@ -1,0 +1,90 @@
+{% block content %}
+<div class="container py-3">
+
+  <!-- Controls (No Print) -->
+  <div class="no-print d-flex justify-content-between align-items-center max-w-440 mx-auto mb-3" style="max-width: 440px;">
+    <a href="/security" class="btn btn-sm btn-outline-dark fw-bold">
+      <i class="bi bi-arrow-left me-1"></i> Back to Gate Portal
+    </a>
+    <button onclick="window.print()" class="btn btn-sm btn-ccl-gold fw-bold px-3">
+      <i class="bi bi-printer-fill me-1"></i> Print Visitor Badge
+    </button>
+  </div>
+
+  <!-- Printable Digital Visitor Badge Card -->
+  <div class="badge-pass-card">
+    
+    <!-- Pass Header -->
+    <div class="badge-header">
+      <div class="badge-header-logo mb-1">CCL</div>
+      <h5 class="fw-bold font-heading text-white mb-0">CENTRAL COALFIELDS LIMITED</h5>
+      <div class="small text-warning font-monospace fw-bold mt-0.5" style="font-size: 0.75rem; letter-spacing: 0.5px;">OFFICIAL DIGITAL VISITOR PASS</div>
+    </div>
+
+    <!-- Pass Body -->
+    <div class="badge-body">
+      
+      <!-- Code & Status -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <small class="text-muted text-uppercase fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">PASS CODE</small>
+          <div class="fw-bold font-monospace fs-4 text-dark lh-1">{{ pass_code }}</div>
+        </div>
+        <div>
+          <span class="status-pill status-{{ status }}">{{ status }}</span>
+        </div>
+      </div>
+
+      <!-- Visitor Photo & QR Code Grid -->
+      <div class="row g-2 align-items-center mb-4">
+        <div class="col-6 text-center">
+          <div class="badge-qr-container shadow-sm">
+            {{ qr_code_svg | safe }}
+            <div class="small text-muted mt-1 font-monospace" style="font-size: 0.65rem;">SCAN AT ENTRY GATE</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="p-3 border rounded-4 text-center bg-light shadow-sm">
+            <div class="badge-avatar-box mb-2">
+              <i class="bi bi-person-fill fs-2 text-dark"></i>
+            </div>
+            <div class="fw-bold text-dark text-truncate font-heading" style="font-size: 0.95rem;">{{ visitor_name }}</div>
+            <div class="small text-muted mt-0.5" style="font-size: 0.75rem;"><i class="bi bi-telephone-fill me-1 text-warning"></i>{{ mobile }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visit Details Card Grid -->
+      <div class="p-3 bg-light rounded-4 border mb-3 small">
+        <div class="row g-2">
+          <div class="col-6">
+            <span class="text-muted d-block fw-semibold" style="font-size: 0.68rem; text-transform: uppercase;">ID PROOF</span>
+            <strong class="text-dark">{{ id_type }}</strong>
+            <div class="text-muted font-monospace" style="font-size: 0.7rem;">{{ id_number }}</div>
+          </div>
+          <div class="col-6">
+            <span class="text-muted d-block fw-semibold" style="font-size: 0.68rem; text-transform: uppercase;">HOST EMPLOYEE</span>
+            <strong class="text-dark">{{ host_name }}</strong>
+            <div class="text-muted" style="font-size: 0.7rem;">{{ department }}</div>
+          </div>
+          <div class="col-6 mt-2">
+            <span class="text-muted d-block fw-semibold" style="font-size: 0.68rem; text-transform: uppercase;">PURPOSE</span>
+            <strong class="text-dark">{{ purpose }}</strong>
+          </div>
+          <div class="col-6 mt-2">
+            <span class="text-muted d-block fw-semibold" style="font-size: 0.68rem; text-transform: uppercase;">GATE & DURATION</span>
+            <strong class="text-dark">{{ gate_number }}</strong>
+            <div class="text-muted" style="font-size: 0.7rem;">Valid: {{ expected_duration }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mine Security Guidelines -->
+      <div class="alert alert-warning p-2.5 small mb-0 rounded-3 border-warning text-center" style="font-size: 0.72rem;">
+        <i class="bi bi-shield-exclamation me-1 text-danger"></i><strong>Mine Safety Rule:</strong> Wear pass badge at all times. Mine area entry requires safety helmet. Security Hotline: <strong>0651-2360123</strong>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

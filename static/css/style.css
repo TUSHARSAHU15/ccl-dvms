@@ -1,0 +1,339 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+:root {
+  --ccl-dark-bg: #0B0F17;
+  --ccl-dark-surface: #151D2A;
+  --ccl-navy-deep: #0F172A;
+  --ccl-navy-light: #1E293B;
+  
+  --ccl-gold-start: #F59E0B;
+  --ccl-gold-end: #D97706;
+  --ccl-gold-glow: rgba(245, 158, 11, 0.25);
+  
+  --ccl-emerald: #059669;
+  --ccl-emerald-light: #ECFDF5;
+  --ccl-sky: #0284C7;
+  --ccl-sky-light: #F0F9FF;
+  --ccl-danger: #EF4444;
+  --ccl-danger-light: #FEF2F2;
+
+  --ccl-body-bg: #F8FAFC;
+  --ccl-card-bg: #FFFFFF;
+  --ccl-border: #E2E8F0;
+  --ccl-text-main: #0F172A;
+  --ccl-text-muted: #64748B;
+  
+  --ccl-radius-sm: 8px;
+  --ccl-radius-md: 12px;
+  --ccl-radius-lg: 16px;
+  --ccl-radius-xl: 24px;
+
+  --ccl-shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.04);
+  --ccl-shadow-md: 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  --ccl-shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--ccl-body-bg);
+  color: var(--ccl-text-main);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphic Navbar */
+.ccl-navbar {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid var(--ccl-gold-start);
+  padding: 0.75rem 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ccl-brand-badge {
+  background: linear-gradient(135deg, var(--ccl-gold-start), var(--ccl-gold-end));
+  color: var(--ccl-navy-deep);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  border-radius: var(--ccl-radius-sm);
+  box-shadow: 0 4px 12px var(--ccl-gold-glow);
+  letter-spacing: 0.5px;
+}
+
+.ccl-nav-link {
+  color: #94A3B8 !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 14px !important;
+  border-radius: var(--ccl-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.ccl-nav-link:hover, .ccl-nav-link.active {
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Pulse Live Indicator */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10B981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 1.8s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Premium KPI Metric Cards */
+.metric-card {
+  background: var(--ccl-card-bg);
+  border-radius: var(--ccl-radius-lg);
+  border: 1px solid var(--ccl-border);
+  padding: 1.5rem;
+  box-shadow: var(--ccl-shadow-sm);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ccl-shadow-md);
+  border-color: #CBD5E1;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.metric-card.border-primary::before { background: var(--ccl-sky); }
+.metric-card.border-success::before { background: var(--ccl-emerald); }
+.metric-card.border-warning::before { background: var(--ccl-gold-start); }
+.metric-card.border-info::before { background: #6366F1; }
+.metric-card.border-dark::before { background: var(--ccl-navy-deep); }
+
+.metric-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ccl-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: transform 0.2s ease;
+}
+
+.metric-card:hover .metric-icon-box {
+  transform: scale(1.08);
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.status-Inside { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+.status-Completed { background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD; }
+.status-Pending { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+.status-Approved { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+.status-Rejected { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+
+/* Camera / Scanner Laser Frame */
+.scanner-frame {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: #000000;
+  border-radius: var(--ccl-radius-md);
+  overflow: hidden;
+  border: 2px solid #334155;
+}
+
+.scanner-laser {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--ccl-gold-start), transparent);
+  box-shadow: 0 0 15px var(--ccl-gold-start);
+  animation: laser-scan 2.5s ease-in-out infinite alternate;
+  z-index: 5;
+}
+
+@keyframes laser-scan {
+  0% { top: 5%; }
+  100% { top: 92%; }
+}
+
+.scanner-corners::before, .scanner-corners::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--ccl-gold-start);
+  border-style: solid;
+  z-index: 4;
+}
+
+.scanner-corners::before { top: 12px; left: 12px; border-width: 3px 0 0 3px; }
+.scanner-corners::after { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; }
+
+/* Modern Printable Pass Badge */
+.badge-pass-card {
+  max-width: 440px;
+  margin: 1.5rem auto;
+  background: #FFFFFF;
+  border-radius: var(--ccl-radius-xl);
+  box-shadow: var(--ccl-shadow-lg);
+  border: 1px solid var(--ccl-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.badge-pass-card::after {
+  content: 'CCL OFFICIAL GATE PASS';
+  position: absolute;
+  bottom: 25%;
+  right: -20px;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.03);
+  transform: rotate(-30deg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.badge-header {
+  background: linear-gradient(135deg, var(--ccl-navy-deep), var(--ccl-navy-light));
+  color: #FFFFFF;
+  padding: 1.5rem;
+  text-align: center;
+  border-bottom: 4px solid var(--ccl-gold-start);
+  position: relative;
+}
+
+.badge-header-logo {
+  background: linear-gradient(135deg, var(--ccl-gold-start), var(--ccl-gold-end));
+  color: var(--ccl-navy-deep);
+  font-weight: 900;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.badge-body {
+  padding: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.badge-qr-container {
+  background: #F8FAFC;
+  border: 2px dashed #CBD5E1;
+  border-radius: var(--ccl-radius-md);
+  padding: 14px;
+  text-align: center;
+}
+
+.badge-avatar-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  border: 3px solid var(--ccl-gold-start);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--ccl-shadow-sm);
+}
+
+/* Custom Table Styling */
+.table-custom {
+  margin-bottom: 0;
+}
+
+.table-custom thead th {
+  background: #F8FAFC;
+  color: var(--ccl-text-muted);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--ccl-border);
+  padding: 1rem;
+}
+
+.table-custom tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 0.9rem;
+}
+
+.table-custom tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+/* Custom Button Effects */
+.btn-ccl-gold {
+  background: linear-gradient(135deg, var(--ccl-gold-start), var(--ccl-gold-end));
+  color: var(--ccl-navy-deep);
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 12px var(--ccl-gold-glow);
+  transition: all 0.2s ease;
+}
+
+.btn-ccl-gold:hover {
+  background: linear-gradient(135deg, #D97706, #B45309);
+  color: #FFFFFF;
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Modal Polish */
+.modal-content {
+  border-radius: var(--ccl-radius-lg);
+  border: none;
+  box-shadow: var(--ccl-shadow-lg);
+  overflow: hidden;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .badge-pass-card, .badge-pass-card * { visibility: visible; }
+  .badge-pass-card { position: absolute; left: 0; top: 0; width: 100%; margin: 0; border: none; shadow: none; }
+  .no-print { display: none !important; }
+}
