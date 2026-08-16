@@ -9,11 +9,16 @@ import traceback
 from wsgiref.simple_server import make_server
 from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH, get_default_seed_dataset
 
-# Initialize database on startup
-init_db()
-
 PORT = 5000
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_INITIALIZED = False
+
+# Initialize database safely at startup
+try:
+    init_db()
+    DB_INITIALIZED = True
+except Exception as e:
+    print("Startup init_db warning:", e)
 
 def get_data_store():
     if HAS_SQLITE:
@@ -144,6 +149,14 @@ def render_template(template_name, context={}):
     return full_page
 
 def application(environ, start_response):
+    global DB_INITIALIZED
+    if not DB_INITIALIZED:
+        try:
+            init_db()
+            DB_INITIALIZED = True
+        except Exception as e:
+            print("Request-time init_db warning:", e)
+            
     try:
         path = environ.get('PATH_INFO') or '/'
         method = environ.get('REQUEST_METHOD') or 'GET'
@@ -500,7 +513,7 @@ def application(environ, start_response):
         start_response('302 Found', [('Location', '/dashboard')])
         return [b'']
     except Exception as e:
-        err_msg = f"<h1>Internal Server Error</h1><pre>{traceback.format_exc()}</pre>"
+        err_msg = f"<html><body><h1>Internal Server Error</h1><pre>{traceback.format_exc()}</pre></body></html>"
         err_bytes = err_msg.encode('utf-8')
         start_response('500 Internal Server Error', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(err_bytes)))])
         return [err_bytes]
