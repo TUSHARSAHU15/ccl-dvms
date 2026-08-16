@@ -4,8 +4,13 @@ import json
 import datetime
 import uuid
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'ccl_dvms.db')
-JSON_DB_PATH = os.path.join(os.path.dirname(__file__), 'ccl_dvms.json')
+# Use /tmp for writable SQLite database in cloud containers if root dir is not writable
+DEFAULT_DB_DIR = os.path.dirname(os.path.abspath(__file__))
+if not os.access(DEFAULT_DB_DIR, os.W_OK):
+    DEFAULT_DB_DIR = '/tmp'
+
+DB_PATH = os.path.join(DEFAULT_DB_DIR, 'ccl_dvms.db')
+JSON_DB_PATH = os.path.join(DEFAULT_DB_DIR, 'ccl_dvms.json')
 
 HAS_SQLITE = True
 try:
@@ -60,12 +65,11 @@ class JSONDatabase:
         return JSONCursor(self.data)
 
     def commit(self):
-        if os.path.exists(os.path.dirname(JSON_DB_PATH)):
-            try:
-                with open(JSON_DB_PATH, 'w') as f:
-                    json.dump(self.data, f, indent=2)
-            except Exception:
-                pass
+        try:
+            with open(JSON_DB_PATH, 'w') as f:
+                json.dump(self.data, f, indent=2)
+        except Exception:
+            pass
 
     def close(self):
         self.commit()
@@ -249,14 +253,6 @@ def get_default_seed_dataset():
     }
 
 def init_db():
-    # Always write fallback JSON dataset file if missing
-    if not os.path.exists(JSON_DB_PATH):
-        try:
-            with open(JSON_DB_PATH, 'w') as f:
-                json.dump(get_default_seed_dataset(), f, indent=2)
-        except Exception:
-            pass
-
     try:
         if HAS_SQLITE:
             conn = get_db()
