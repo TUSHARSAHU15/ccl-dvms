@@ -1,14 +1,20 @@
 import os
+import sys
 import json
 import datetime
 import urllib.parse
 import hashlib
 import re
 import traceback
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
 from flask import Flask, render_template, request, redirect, url_for, jsonify, make_response, Response
 from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH, get_default_seed_dataset
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'), static_folder=os.path.join(BASE_DIR, 'static'))
 
 # Catch all exceptions and return traceback for cloud debugging
 @app.errorhandler(Exception)
@@ -22,45 +28,6 @@ except Exception as e:
     print("Database startup init warning:", e)
 
 def get_data_store():
-    if HAS_SQLITE:
-        try:
-            conn = get_db()
-            if hasattr(conn, 'cursor'):
-                cursor = conn.cursor()
-                cursor.execute("SELECT * FROM departments")
-                depts = [dict(row) for row in cursor.fetchall()]
-                cursor.execute("SELECT * FROM employees")
-                employees = [dict(row) for row in cursor.fetchall()]
-                cursor.execute("SELECT * FROM visitors")
-                visitors = [dict(row) for row in cursor.fetchall()]
-                cursor.execute("SELECT * FROM visits ORDER BY id DESC")
-                visits = [dict(row) for row in cursor.fetchall()]
-                cursor.execute("SELECT * FROM users")
-                users = [dict(row) for row in cursor.fetchall()]
-                cursor.execute("SELECT * FROM gate_logs ORDER BY id DESC")
-                gate_logs = [dict(row) for row in cursor.fetchall()]
-                conn.close()
-                if depts and len(depts) > 0:
-                    return {
-                        "departments": depts,
-                        "employees": employees,
-                        "visitors": visitors,
-                        "visits": visits,
-                        "users": users,
-                        "gate_logs": gate_logs
-                    }
-        except Exception as e:
-            print("SQLite read error in get_data_store, falling back to JSON:", e)
-            
-    if os.path.exists(JSON_DB_PATH):
-        try:
-            with open(JSON_DB_PATH, 'r') as f:
-                loaded = json.load(f)
-                if loaded and isinstance(loaded, dict) and loaded.get("departments"):
-                    return loaded
-        except Exception:
-            pass
-            
     return get_default_seed_dataset()
 
 @app.route('/')
@@ -235,26 +202,8 @@ def api_register_visitor():
     pass_code = f"CCL-PASS-{800 + len(data['visits']) + 1}"
     qr_svg = generate_qr_svg(pass_code)
     
-    if HAS_SQLITE:
-        try:
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute('''INSERT INTO visitors (name, mobile, email, gender, address, photo_data, id_type, id_number)
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                           (name, mobile, email, gender, address, photo_data, id_type, id_number))
-            v_id = cursor.lastrowid
-            cursor.execute('''INSERT INTO visits (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, qr_code_svg)
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)''',
-                           (pass_code, v_id, emp_id, dept_id, purpose, today_str, expected_duration, vehicle_number, gate_number, qr_svg))
-            visit_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
-        except Exception:
-            v_id = len(data['visitors']) + 1
-            visit_id = len(data['visits']) + 1
-    else:
-        v_id = len(data['visitors']) + 1
-        visit_id = len(data['visits']) + 1
+    v_id = len(data['visitors']) + 1
+    visit_id = len(data['visits']) + 1
 
     return jsonify({"success": True, "pass_code": pass_code, "visit_id": visit_id})
 
