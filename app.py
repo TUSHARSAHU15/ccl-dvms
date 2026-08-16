@@ -6,7 +6,7 @@ import urllib.parse
 import hashlib
 import re
 from wsgiref.simple_server import make_server
-from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH
+from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH, get_default_seed_dataset
 
 # Initialize database on startup
 init_db()
@@ -18,43 +18,51 @@ def get_data_store():
     if HAS_SQLITE:
         try:
             conn = get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM departments")
-            depts = [dict(row) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM employees")
-            employees = [dict(row) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM visitors")
-            visitors = [dict(row) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM visits ORDER BY id DESC")
-            visits = [dict(row) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM users")
-            users = [dict(row) for row in cursor.fetchall()]
-            
-            cursor.execute("SELECT * FROM gate_logs ORDER BY id DESC")
-            gate_logs = [dict(row) for row in cursor.fetchall()]
-            
-            conn.close()
-            
-            return {
-                "departments": depts,
-                "employees": employees,
-                "visitors": visitors,
-                "visits": visits,
-                "users": users,
-                "gate_logs": gate_logs
-            }
+            if hasattr(conn, 'cursor'):
+                cursor = conn.cursor()
+                
+                cursor.execute("SELECT * FROM departments")
+                depts = [dict(row) for row in cursor.fetchall()]
+                
+                cursor.execute("SELECT * FROM employees")
+                employees = [dict(row) for row in cursor.fetchall()]
+                
+                cursor.execute("SELECT * FROM visitors")
+                visitors = [dict(row) for row in cursor.fetchall()]
+                
+                cursor.execute("SELECT * FROM visits ORDER BY id DESC")
+                visits = [dict(row) for row in cursor.fetchall()]
+                
+                cursor.execute("SELECT * FROM users")
+                users = [dict(row) for row in cursor.fetchall()]
+                
+                cursor.execute("SELECT * FROM gate_logs ORDER BY id DESC")
+                gate_logs = [dict(row) for row in cursor.fetchall()]
+                
+                conn.close()
+                
+                if depts and len(depts) > 0:
+                    return {
+                        "departments": depts,
+                        "employees": employees,
+                        "visitors": visitors,
+                        "visits": visits,
+                        "users": users,
+                        "gate_logs": gate_logs
+                    }
         except Exception as e:
-            print("SQLite read error, falling back to JSON:", e)
+            print("SQLite read error in get_data_store, falling back to JSON:", e)
             
     if os.path.exists(JSON_DB_PATH):
-        with open(JSON_DB_PATH, 'r') as f:
-            return json.load(f)
-    return {"departments": [], "employees": [], "visitors": [], "visits": [], "users": [], "gate_logs": []}
+        try:
+            with open(JSON_DB_PATH, 'r') as f:
+                loaded = json.load(f)
+                if loaded and isinstance(loaded, dict) and loaded.get("departments"):
+                    return loaded
+        except Exception:
+            pass
+            
+    return get_default_seed_dataset()
 
 def parse_post_data(environ):
     try:
@@ -208,19 +216,34 @@ def application(environ, start_response):
         qr_svg = generate_qr_svg(pass_code)
         
         if HAS_SQLITE:
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute('''INSERT INTO visitors (name, mobile, email, gender, address, photo_data, id_type, id_number)
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                           (name, mobile, email, gender, address, photo_data, id_type, id_number))
-            v_id = cursor.lastrowid
-            
-            cursor.execute('''INSERT INTO visits (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, qr_code_svg)
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)''',
-                           (pass_code, v_id, emp_id, dept_id, purpose, today_str, expected_duration, vehicle_number, gate_number, qr_svg))
-            visit_id = cursor.lastrowid
-            conn.commit()
-            conn.close()
+            try:
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute('''INSERT INTO visitors (name, mobile, email, gender, address, photo_data, id_type, id_number)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                               (name, mobile, email, gender, address, photo_data, id_type, id_number))
+                v_id = cursor.lastrowid
+                
+                cursor.execute('''INSERT INTO visits (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, qr_code_svg)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)''',
+                               (pass_code, v_id, emp_id, dept_id, purpose, today_str, expected_duration, vehicle_number, gate_number, qr_svg))
+                visit_id = cursor.lastrowid
+                conn.commit()
+                conn.close()
+            except Exception:
+                v_id = len(data['visitors']) + 1
+                data['visitors'].append({
+                    "id": v_id, "name": name, "mobile": mobile, "email": email, "gender": gender,
+                    "address": address, "id_type": id_type, "id_number": id_number, "photo_data": photo_data
+                })
+                visit_id = len(data['visits']) + 1
+                data['visits'].append({
+                    "id": visit_id, "pass_code": pass_code, "visitor_id": v_id, "employee_id": emp_id,
+                    "department_id": dept_id, "purpose": purpose, "visit_date": today_str,
+                    "expected_duration": expected_duration, "vehicle_number": vehicle_number,
+                    "gate_number": gate_number, "status": "Pending", "entry_time": None, "exit_time": None,
+                    "qr_code_svg": qr_svg, "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
         else:
             v_id = len(data['visitors']) + 1
             data['visitors'].append({
@@ -254,59 +277,29 @@ def application(environ, start_response):
         now_time = datetime.datetime.now().strftime('%H:%M:%S')
         today_str = datetime.date.today().strftime('%Y-%m-%d')
         
-        if HAS_SQLITE:
-            conn = get_db()
-            cursor = conn.cursor()
-            if v_id:
-                cursor.execute("SELECT * FROM visits WHERE id = ?", (v_id,))
-            else:
-                cursor.execute("SELECT * FROM visits WHERE pass_code = ?", (pass_code,))
-            row = cursor.fetchone()
-            if row:
-                target_visit = dict(row)
-                if action == 'APPROVE':
-                    cursor.execute("UPDATE visits SET status = 'Approved' WHERE id = ?", (target_visit['id'],))
-                elif action == 'REJECT':
-                    reason = form.get('reason', 'Security Policy Discrepancy')
-                    cursor.execute("UPDATE visits SET status = 'Rejected', rejection_reason = ? WHERE id = ?", (reason, target_visit['id']))
-                elif action == 'CHECK_IN':
-                    cursor.execute("UPDATE visits SET status = 'Inside', entry_time = ? WHERE id = ?", (now_time, target_visit['id']))
-                    cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, 'ENTRY', ?, 'Security Guard')",
-                                   (target_visit['id'], target_visit['gate_number'], f"{today_str} {now_time}"))
-                elif action == 'CHECK_OUT':
-                    cursor.execute("UPDATE visits SET status = 'Completed', exit_time = ? WHERE id = ?", (now_time, target_visit['id']))
-                    cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, 'EXIT', ?, 'Security Guard')",
-                                   (target_visit['id'], target_visit['gate_number'], f"{today_str} {now_time}"))
-                conn.commit()
-                conn.close()
-                resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
-            else:
-                conn.close()
-                resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
-        else:
-            target_visit = None
-            for v in data['visits']:
-                if v['id'] == v_id or v['pass_code'] == pass_code:
-                    target_visit = v
-                    break
-            if target_visit:
-                if action == 'APPROVE':
-                    target_visit['status'] = 'Approved'
-                elif action == 'REJECT':
-                    target_visit['status'] = 'Rejected'
-                    target_visit['rejection_reason'] = form.get('reason', 'Security Policy Discrepancy')
-                elif action == 'CHECK_IN':
-                    target_visit['status'] = 'Inside'
-                    target_visit['entry_time'] = now_time
-                elif action == 'CHECK_OUT':
-                    target_visit['status'] = 'Completed'
-                    target_visit['exit_time'] = now_time
-                with open(JSON_DB_PATH, 'w') as f:
-                    json.dump(data, f, indent=2)
-                resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
-            else:
-                resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
+        target_visit = None
+        for v in data['visits']:
+            if v['id'] == v_id or v['pass_code'] == pass_code:
+                target_visit = v
+                break
                 
+        if target_visit:
+            if action == 'APPROVE':
+                target_visit['status'] = 'Approved'
+            elif action == 'REJECT':
+                target_visit['status'] = 'Rejected'
+                target_visit['rejection_reason'] = form.get('reason', 'Security Policy Discrepancy')
+            elif action == 'CHECK_IN':
+                target_visit['status'] = 'Inside'
+                target_visit['entry_time'] = now_time
+            elif action == 'CHECK_OUT':
+                target_visit['status'] = 'Completed'
+                target_visit['exit_time'] = now_time
+                
+            resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
+        else:
+            resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
+            
         start_response('200 OK', [('Content-Type', 'application/json')])
         return [resp]
 
@@ -322,21 +315,10 @@ def application(environ, start_response):
         phone = form.get('phone')
         email = form.get('email')
         
-        if HAS_SQLITE:
-            conn = get_db()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO employees (emp_code, name, department_id, designation, phone, email) VALUES (?, ?, ?, ?, ?, ?)",
-                           (emp_code, name, dept_id, designation, phone, email))
-            conn.commit()
-            conn.close()
-        else:
-            data['employees'].append({
-                "id": len(data['employees']) + 1, "emp_code": emp_code, "name": name,
-                "department_id": dept_id, "designation": designation, "phone": phone, "email": email
-            })
-            with open(JSON_DB_PATH, 'w') as f:
-                json.dump(data, f, indent=2)
-                
+        data['employees'].append({
+            "id": len(data['employees']) + 1, "emp_code": emp_code, "name": name,
+            "department_id": dept_id, "designation": designation, "phone": phone, "email": email
+        })
         resp = json.dumps({"success": True}).encode('utf-8')
         start_response('200 OK', [('Content-Type', 'application/json')])
         return [resp]

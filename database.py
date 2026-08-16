@@ -46,18 +46,13 @@ class JSONCursor:
 
 class JSONDatabase:
     def __init__(self):
-        self.data = {
-            "departments": [],
-            "employees": [],
-            "visitors": [],
-            "visits": [],
-            "users": [],
-            "gate_logs": []
-        }
+        self.data = get_default_seed_dataset()
         if os.path.exists(JSON_DB_PATH):
             try:
                 with open(JSON_DB_PATH, 'r') as f:
-                    self.data = json.load(f)
+                    loaded = json.load(f)
+                    if loaded and isinstance(loaded, dict) and loaded.get("departments"):
+                        self.data = loaded
             except Exception:
                 pass
 
@@ -78,7 +73,7 @@ class JSONDatabase:
 def get_db():
     if HAS_SQLITE:
         try:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(DB_PATH, timeout=20.0)
             conn.row_factory = sqlite3.Row
             return conn
         except Exception:
@@ -123,7 +118,145 @@ def generate_qr_svg(content):
     </svg>'''
     return svg_content
 
+def get_default_seed_dataset():
+    today_str = datetime.date.today().strftime('%Y-%m-%d')
+    def hash_pw(pw):
+        return hashlib.sha256(pw.encode()).hexdigest()
+
+    depts = [
+        {"id": 1, "name": "Central Headquarters (Ranchi)", "area_name": "HQ Ranchi", "code": "CCL-HQ"},
+        {"id": 2, "name": "Piparwar Open Cast Project", "area_name": "Piparwar Area", "code": "CCL-PIP"},
+        {"id": 3, "name": "Barka-Sayal Area Office", "area_name": "Barka-Sayal Area", "code": "CCL-BSK"},
+        {"id": 4, "name": "Rajrappa Coal Washery & Mines", "area_name": "Rajrappa Area", "code": "CCL-RAJ"},
+        {"id": 5, "name": "Central Workshop Barkakana", "area_name": "Barkakana Area", "code": "CCL-CWB"},
+        {"id": 6, "name": "N K Area Office", "area_name": "North Karanpura", "code": "CCL-NKA"}
+    ]
+    
+    employees = [
+        {"id": 1, "emp_code": "CCL1001", "name": "Rajesh Kumar", "department_id": 1, "designation": "General Manager (Mining)", "phone": "9431102938", "email": "rajesh.k@ccl.gov.in"},
+        {"id": 2, "emp_code": "CCL1002", "name": "Sunita Sharma", "department_id": 5, "designation": "Chief Mechanical Engineer", "phone": "9431108273", "email": "sunita.sharma@ccl.gov.in"},
+        {"id": 3, "emp_code": "CCL1003", "name": "Amit Varma", "department_id": 2, "designation": "Safety & Security Officer", "phone": "9431105642", "email": "amit.v@ccl.gov.in"},
+        {"id": 4, "emp_code": "CCL1004", "name": "Priyadarshini Rao", "department_id": 1, "designation": "Senior HR Manager", "phone": "9431101129", "email": "p.rao@ccl.gov.in"},
+        {"id": 5, "emp_code": "CCL1005", "name": "Vikram Singh", "department_id": 4, "designation": "Procurement Lead", "phone": "9431107741", "email": "vikram.s@ccl.gov.in"},
+        {"id": 6, "emp_code": "CCL1006", "name": "Manoj Tiwari", "department_id": 3, "designation": "Area Finance Officer", "phone": "9431104482", "email": "manoj.t@ccl.gov.in"}
+    ]
+
+    users = [
+        {"id": 1, "username": "admin", "password_hash": hash_pw("admin123"), "role": "Admin", "name": "System Administrator", "emp_id": None},
+        {"id": 2, "username": "guard1", "password_hash": hash_pw("guard123"), "role": "Security", "name": "Security Officer - Gate 1", "emp_id": None},
+        {"id": 3, "username": "guard2", "password_hash": hash_pw("guard123"), "role": "Security", "name": "Security Officer - Gate 2", "emp_id": None},
+        {"id": 4, "username": "rajesh.k", "password_hash": hash_pw("emp123"), "role": "Employee", "name": "Rajesh Kumar", "emp_id": 1},
+        {"id": 5, "username": "sunita.s", "password_hash": hash_pw("emp123"), "role": "Employee", "name": "Sunita Sharma", "emp_id": 2},
+        {"id": 6, "username": "visitor", "password_hash": hash_pw("pass123"), "role": "Visitor", "name": "Guest Visitor", "emp_id": None}
+    ]
+
+    visitors = [
+        {"id": 1, "name": "Ramesh Chand", "mobile": "9876543210", "email": "ramesh@vendor.com", "gender": "Male", "address": "Ranchi Industrial Park, Phase II", "id_type": "Aadhaar Card", "id_number": "8374-9201-4451"},
+        {"id": 2, "name": "Anjali Gupta", "mobile": "9812345678", "email": "anjali@inspection.org", "gender": "Female", "address": "CMPDI Campus, Kanke Road, Ranchi", "id_type": "PAN Card", "id_number": "ABCDE1234F"},
+        {"id": 3, "name": "Suresh Yadav", "mobile": "9934567890", "email": "suresh@equipment.in", "gender": "Male", "address": "Ramgarh Cantt, Jharkhand", "id_type": "Driving License", "id_number": "JH01-202200192"},
+        {"id": 4, "name": "Deepak Mahato", "mobile": "9701234567", "email": "deepak@coalcontractor.com", "gender": "Male", "address": "Birkuri Village, Piparwar", "id_type": "Govt Photo ID", "id_number": "CCL-CONT-9912"}
+    ]
+
+    visits = [
+        {
+            "id": 1,
+            "pass_code": "CCL-PASS-801",
+            "visitor_id": 1,
+            "employee_id": 1,
+            "department_id": 1,
+            "purpose": "Official Machinery Procurement Meeting",
+            "visit_date": today_str,
+            "expected_duration": "2 Hours",
+            "vehicle_number": "JH01-AZ-4412",
+            "gate_number": "Gate 1 (Main Entrance)",
+            "status": "Inside",
+            "entry_time": "09:30:00",
+            "exit_time": None,
+            "qr_code_svg": generate_qr_svg("CCL-PASS-801"),
+            "rejection_reason": None,
+            "created_at": f"{today_str} 09:15:00"
+        },
+        {
+            "id": 2,
+            "pass_code": "CCL-PASS-802",
+            "visitor_id": 2,
+            "employee_id": 2,
+            "department_id": 5,
+            "purpose": "Workshop Safety Audit",
+            "visit_date": today_str,
+            "expected_duration": "4 Hours",
+            "vehicle_number": "JH02-B-9901",
+            "gate_number": "Gate 2 (Workshop Gate)",
+            "status": "Completed",
+            "entry_time": "08:15:00",
+            "exit_time": "12:45:00",
+            "qr_code_svg": generate_qr_svg("CCL-PASS-802"),
+            "rejection_reason": None,
+            "created_at": f"{today_str} 08:00:00"
+        },
+        {
+            "id": 3,
+            "pass_code": "CCL-PASS-803",
+            "visitor_id": 3,
+            "employee_id": 3,
+            "department_id": 2,
+            "purpose": "Heavy Earthmoving Equipment Inspection",
+            "visit_date": today_str,
+            "expected_duration": "3 Hours",
+            "vehicle_number": "JH24-C-3388",
+            "gate_number": "Gate 1 (Main Entrance)",
+            "status": "Pending",
+            "entry_time": None,
+            "exit_time": None,
+            "qr_code_svg": generate_qr_svg("CCL-PASS-803"),
+            "rejection_reason": None,
+            "created_at": f"{today_str} 10:00:00"
+        },
+        {
+            "id": 4,
+            "pass_code": "CCL-PASS-804",
+            "visitor_id": 4,
+            "employee_id": 5,
+            "department_id": 4,
+            "purpose": "Contractor Gate Pass Verification",
+            "visit_date": today_str,
+            "expected_duration": "5 Hours",
+            "vehicle_number": "JH01-X-1234",
+            "gate_number": "Gate 3 (Mines Entrance)",
+            "status": "Inside",
+            "entry_time": "10:15:00",
+            "exit_time": None,
+            "qr_code_svg": generate_qr_svg("CCL-PASS-804"),
+            "rejection_reason": None,
+            "created_at": f"{today_str} 10:10:00"
+        }
+    ]
+
+    gate_logs = [
+        {"id": 1, "visit_id": 1, "gate_number": "Gate 1 (Main Entrance)", "action": "ENTRY", "timestamp": f"{today_str} 09:30:00", "guard_name": "Guard Gate 1"},
+        {"id": 2, "visit_id": 2, "gate_number": "Gate 2 (Workshop Gate)", "action": "ENTRY", "timestamp": f"{today_str} 08:15:00", "guard_name": "Guard Gate 2"},
+        {"id": 3, "visit_id": 2, "gate_number": "Gate 2 (Workshop Gate)", "action": "EXIT", "timestamp": f"{today_str} 12:45:00", "guard_name": "Guard Gate 2"},
+        {"id": 4, "visit_id": 4, "gate_number": "Gate 3 (Mines Entrance)", "action": "ENTRY", "timestamp": f"{today_str} 10:15:00", "guard_name": "Guard Gate 3"}
+    ]
+
+    return {
+        "departments": depts,
+        "employees": employees,
+        "visitors": visitors,
+        "visits": visits,
+        "users": users,
+        "gate_logs": gate_logs
+    }
+
 def init_db():
+    # Always write fallback JSON dataset file if missing
+    if not os.path.exists(JSON_DB_PATH):
+        try:
+            with open(JSON_DB_PATH, 'w') as f:
+                json.dump(get_default_seed_dataset(), f, indent=2)
+        except Exception:
+            pass
+
     try:
         if HAS_SQLITE:
             conn = get_db()
@@ -233,239 +366,52 @@ def init_db():
 def seed_json_data(db):
     if len(db.data.get("departments", [])) > 0:
         return
-        
-    print("Seeding initial CCL JSON dataset...")
-    db.data["departments"] = [
-        {"id": 1, "name": "Central Headquarters (Ranchi)", "area_name": "HQ Ranchi", "code": "CCL-HQ"},
-        {"id": 2, "name": "Piparwar Open Cast Project", "area_name": "Piparwar Area", "code": "CCL-PIP"},
-        {"id": 3, "name": "Barka-Sayal Area Office", "area_name": "Barka-Sayal Area", "code": "CCL-BSK"},
-        {"id": 4, "name": "Rajrappa Coal Washery & Mines", "area_name": "Rajrappa Area", "code": "CCL-RAJ"},
-        {"id": 5, "name": "Central Workshop Barkakana", "area_name": "Barkakana Area", "code": "CCL-CWB"},
-        {"id": 6, "name": "N K Area Office", "area_name": "North Karanpura", "code": "CCL-NKA"}
-    ]
-    
-    db.data["employees"] = [
-        {"id": 1, "emp_code": "CCL1001", "name": "Rajesh Kumar", "department_id": 1, "designation": "General Manager (Mining)", "phone": "9431102938", "email": "rajesh.k@ccl.gov.in"},
-        {"id": 2, "emp_code": "CCL1002", "name": "Sunita Sharma", "department_id": 5, "designation": "Chief Mechanical Engineer", "phone": "9431108273", "email": "sunita.sharma@ccl.gov.in"},
-        {"id": 3, "emp_code": "CCL1003", "name": "Amit Varma", "department_id": 2, "designation": "Safety & Security Officer", "phone": "9431105642", "email": "amit.v@ccl.gov.in"},
-        {"id": 4, "emp_code": "CCL1004", "name": "Priyadarshini Rao", "department_id": 1, "designation": "Senior HR Manager", "phone": "9431101129", "email": "p.rao@ccl.gov.in"},
-        {"id": 5, "emp_code": "CCL1005", "name": "Vikram Singh", "department_id": 4, "designation": "Procurement Lead", "phone": "9431107741", "email": "vikram.s@ccl.gov.in"},
-        {"id": 6, "emp_code": "CCL1006", "name": "Manoj Tiwari", "department_id": 3, "designation": "Area Finance Officer", "phone": "9431104482", "email": "manoj.t@ccl.gov.in"}
-    ]
-
-    def hash_pw(pw):
-        return hashlib.sha256(pw.encode()).hexdigest()
-
-    db.data["users"] = [
-        {"id": 1, "username": "admin", "password_hash": hash_pw("admin123"), "role": "Admin", "name": "System Administrator", "emp_id": None},
-        {"id": 2, "username": "guard1", "password_hash": hash_pw("guard123"), "role": "Security", "name": "Security Officer - Gate 1", "emp_id": None},
-        {"id": 3, "username": "guard2", "password_hash": hash_pw("guard123"), "role": "Security", "name": "Security Officer - Gate 2", "emp_id": None},
-        {"id": 4, "username": "rajesh.k", "password_hash": hash_pw("emp123"), "role": "Employee", "name": "Rajesh Kumar", "emp_id": 1},
-        {"id": 5, "username": "sunita.s", "password_hash": hash_pw("emp123"), "role": "Employee", "name": "Sunita Sharma", "emp_id": 2},
-        {"id": 6, "username": "visitor", "password_hash": hash_pw("pass123"), "role": "Visitor", "name": "Guest Visitor", "emp_id": None}
-    ]
-
-    today_str = datetime.date.today().strftime('%Y-%m-%d')
-    
-    db.data["visitors"] = [
-        {"id": 1, "name": "Ramesh Chand", "mobile": "9876543210", "email": "ramesh@vendor.com", "gender": "Male", "address": "Ranchi Industrial Park, Phase II", "id_type": "Aadhaar Card", "id_number": "8374-9201-4451"},
-        {"id": 2, "name": "Anjali Gupta", "mobile": "9812345678", "email": "anjali@inspection.org", "gender": "Female", "address": "CMPDI Campus, Kanke Road, Ranchi", "id_type": "PAN Card", "id_number": "ABCDE1234F"},
-        {"id": 3, "name": "Suresh Yadav", "mobile": "9934567890", "email": "suresh@equipment.in", "gender": "Male", "address": "Ramgarh Cantt, Jharkhand", "id_type": "Driving License", "id_number": "JH01-202200192"},
-        {"id": 4, "name": "Deepak Mahato", "mobile": "9701234567", "email": "deepak@coalcontractor.com", "gender": "Male", "address": "Birkuri Village, Piparwar", "id_type": "Govt Photo ID", "id_number": "CCL-CONT-9912"}
-    ]
-
-    db.data["visits"] = [
-        {
-            "id": 1,
-            "pass_code": "CCL-PASS-801",
-            "visitor_id": 1,
-            "employee_id": 1,
-            "department_id": 1,
-            "purpose": "Official Machinery Procurement Meeting",
-            "visit_date": today_str,
-            "expected_duration": "2 Hours",
-            "vehicle_number": "JH01-AZ-4412",
-            "gate_number": "Gate 1 (Main Entrance)",
-            "status": "Inside",
-            "entry_time": "09:30:00",
-            "exit_time": None,
-            "qr_code_svg": generate_qr_svg("CCL-PASS-801"),
-            "rejection_reason": None,
-            "created_at": f"{today_str} 09:15:00"
-        },
-        {
-            "id": 2,
-            "pass_code": "CCL-PASS-802",
-            "visitor_id": 2,
-            "employee_id": 2,
-            "department_id": 5,
-            "purpose": "Workshop Safety Audit",
-            "visit_date": today_str,
-            "expected_duration": "4 Hours",
-            "vehicle_number": "JH02-B-9901",
-            "gate_number": "Gate 2 (Workshop Gate)",
-            "status": "Completed",
-            "entry_time": "08:15:00",
-            "exit_time": "12:45:00",
-            "qr_code_svg": generate_qr_svg("CCL-PASS-802"),
-            "rejection_reason": None,
-            "created_at": f"{today_str} 08:00:00"
-        },
-        {
-            "id": 3,
-            "pass_code": "CCL-PASS-803",
-            "visitor_id": 3,
-            "employee_id": 3,
-            "department_id": 2,
-            "purpose": "Heavy Earthmoving Equipment Inspection",
-            "visit_date": today_str,
-            "expected_duration": "3 Hours",
-            "vehicle_number": "JH24-C-3388",
-            "gate_number": "Gate 1 (Main Entrance)",
-            "status": "Pending",
-            "entry_time": None,
-            "exit_time": None,
-            "qr_code_svg": generate_qr_svg("CCL-PASS-803"),
-            "rejection_reason": None,
-            "created_at": f"{today_str} 10:00:00"
-        },
-        {
-            "id": 4,
-            "pass_code": "CCL-PASS-804",
-            "visitor_id": 4,
-            "employee_id": 5,
-            "department_id": 4,
-            "purpose": "Contractor Gate Pass Verification",
-            "visit_date": today_str,
-            "expected_duration": "5 Hours",
-            "vehicle_number": "JH01-X-1234",
-            "gate_number": "Gate 3 (Mines Entrance)",
-            "status": "Inside",
-            "entry_time": "10:15:00",
-            "exit_time": None,
-            "qr_code_svg": generate_qr_svg("CCL-PASS-804"),
-            "rejection_reason": None,
-            "created_at": f"{today_str} 10:10:00"
-        }
-    ]
-
-    db.data["gate_logs"] = [
-        {"id": 1, "visit_id": 1, "gate_number": "Gate 1 (Main Entrance)", "action": "ENTRY", "timestamp": f"{today_str} 09:30:00", "guard_name": "Guard Gate 1"},
-        {"id": 2, "visit_id": 2, "gate_number": "Gate 2 (Workshop Gate)", "action": "ENTRY", "timestamp": f"{today_str} 08:15:00", "guard_name": "Guard Gate 2"},
-        {"id": 3, "visit_id": 2, "gate_number": "Gate 2 (Workshop Gate)", "action": "EXIT", "timestamp": f"{today_str} 12:45:00", "guard_name": "Guard Gate 2"},
-        {"id": 4, "visit_id": 4, "gate_number": "Gate 3 (Mines Entrance)", "action": "ENTRY", "timestamp": f"{today_str} 10:15:00", "guard_name": "Guard Gate 3"}
-    ]
-    
+    db.data = get_default_seed_dataset()
     db.commit()
-    print("JSON seed data initialized!")
 
 def seed_initial_data():
-    conn = get_db()
-    if isinstance(conn, JSONDatabase):
-        seed_json_data(conn)
-        return
-        
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM departments")
-    if cursor.fetchone()[0] > 0:
-        conn.close()
-        return
-        
-    print("Seeding initial CCL DVMS dataset...")
-    
-    depts = [
-        ("Central Headquarters (Ranchi)", "HQ Ranchi", "CCL-HQ"),
-        ("Piparwar Open Cast Project", "Piparwar Area", "CCL-PIP"),
-        ("Barka-Sayal Area Office", "Barka-Sayal Area", "CCL-BSK"),
-        ("Rajrappa Coal Washery & Mines", "Rajrappa Area", "CCL-RAJ"),
-        ("Central Workshop Barkakana", "Barkakana Area", "CCL-CWB"),
-        ("N K Area Office", "North Karanpura", "CCL-NKA")
-    ]
-    cursor.executemany("INSERT INTO departments (name, area_name, code) VALUES (?, ?, ?)", depts)
-    
-    employees = [
-        ("CCL1001", "Rajesh Kumar", 1, "General Manager (Mining)", "9431102938", "rajesh.k@ccl.gov.in"),
-        ("CCL1002", "Sunita Sharma", 5, "Chief Mechanical Engineer", "9431108273", "sunita.sharma@ccl.gov.in"),
-        ("CCL1003", "Amit Varma", 2, "Safety & Security Officer", "9431105642", "amit.v@ccl.gov.in"),
-        ("CCL1004", "Priyadarshini Rao", 1, "Senior HR Manager", "9431101129", "p.rao@ccl.gov.in"),
-        ("CCL1005", "Vikram Singh", 4, "Procurement Lead", "9431107741", "vikram.s@ccl.gov.in"),
-        ("CCL1006", "Manoj Tiwari", 3, "Area Finance Officer", "9431104482", "manoj.t@ccl.gov.in")
-    ]
-    cursor.executemany("INSERT INTO employees (emp_code, name, department_id, designation, phone, email) VALUES (?, ?, ?, ?, ?, ?)", employees)
-    
-    def hash_pw(pw):
-        return hashlib.sha256(pw.encode()).hexdigest()
-        
-    users = [
-        ("admin", hash_pw("admin123"), "Admin", "System Administrator", None),
-        ("guard1", hash_pw("guard123"), "Security", "Security Officer - Gate 1", None),
-        ("guard2", hash_pw("guard123"), "Security", "Security Officer - Gate 2", None),
-        ("rajesh.k", hash_pw("emp123"), "Employee", "Rajesh Kumar", 1),
-        ("sunita.s", hash_pw("emp123"), "Employee", "Sunita Sharma", 2),
-        ("visitor", hash_pw("pass123"), "Visitor", "Guest Visitor", None)
-    ]
-    cursor.executemany("INSERT INTO users (username, password_hash, role, name, emp_id) VALUES (?, ?, ?, ?, ?)", users)
-    
-    today_str = datetime.date.today().strftime('%Y-%m-%d')
-    
-    visitors = [
-        ("Ramesh Chand", "9876543210", "ramesh@vendor.com", "Male", "Ranchi Industrial Park, Phase II", "Aadhaar Card", "8374-9201-4451"),
-        ("Anjali Gupta", "9812345678", "anjali@inspection.org", "Female", "CMPDI Campus, Kanke Road, Ranchi", "PAN Card", "ABCDE1234F"),
-        ("Suresh Yadav", "9934567890", "suresh@equipment.in", "Male", "Ramgarh Cantt, Jharkhand", "Driving License", "JH01-202200192"),
-        ("Deepak Mahato", "9701234567", "deepak@coalcontractor.com", "Male", "Birkuri Village, Piparwar", "Govt Photo ID", "CCL-CONT-9912")
-    ]
-    
-    for name, mob, email, gender, addr, id_t, id_n in visitors:
-        cursor.execute("INSERT INTO visitors (name, mobile, email, gender, address, id_type, id_number) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                       (name, mob, email, gender, addr, id_t, id_n))
-        v_id = cursor.lastrowid
-        
-        if name == "Ramesh Chand":
-            pass_code = "CCL-PASS-801"
-            svg = generate_qr_svg(pass_code)
-            cursor.execute('''INSERT INTO visits 
-                (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, entry_time, qr_code_svg)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (pass_code, v_id, 1, 1, "Official Machinery Procurement Meeting", today_str, "2 Hours", "JH01-AZ-4412", "Gate 1 (Main Entrance)", "Inside", "09:30:00", svg))
-            visit_id = cursor.lastrowid
-            cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, ?, ?, ?)",
-                           (visit_id, "Gate 1 (Main Entrance)", "ENTRY", f"{today_str} 09:30:00", "Guard Gate 1"))
+    try:
+        conn = get_db()
+        if isinstance(conn, JSONDatabase):
+            seed_json_data(conn)
+            return
+            
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM departments")
+        if cursor.fetchone()[0] > 0:
+            conn.close()
+            return
+            
+        seed_data = get_default_seed_dataset()
+        for d in seed_data["departments"]:
+            cursor.execute("INSERT INTO departments (id, name, area_name, code) VALUES (?, ?, ?, ?)",
+                           (d["id"], d["name"], d["area_name"], d["code"]))
                            
-        elif name == "Anjali Gupta":
-            pass_code = "CCL-PASS-802"
-            svg = generate_qr_svg(pass_code)
-            cursor.execute('''INSERT INTO visits 
-                (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, entry_time, exit_time, qr_code_svg)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (pass_code, v_id, 2, 5, "Workshop Safety Audit", today_str, "4 Hours", "JH02-B-9901", "Gate 2 (Workshop Gate)", "Completed", "08:15:00", "12:45:00", svg))
-            visit_id = cursor.lastrowid
-            cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, ?, ?, ?)",
-                           (visit_id, "Gate 2 (Workshop Gate)", "ENTRY", f"{today_str} 08:15:00", "Guard Gate 2"))
-            cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, ?, ?, ?)",
-                           (visit_id, "Gate 2 (Workshop Gate)", "EXIT", f"{today_str} 12:45:00", "Guard Gate 2"))
+        for e in seed_data["employees"]:
+            cursor.execute("INSERT INTO employees (id, emp_code, name, department_id, designation, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                           (e["id"], e["emp_code"], e["name"], e["department_id"], e["designation"], e["phone"], e["email"]))
 
-        elif name == "Suresh Yadav":
-            pass_code = "CCL-PASS-803"
-            svg = generate_qr_svg(pass_code)
-            cursor.execute('''INSERT INTO visits 
-                (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, qr_code_svg)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (pass_code, v_id, 3, 2, "Heavy Earthmoving Equipment Inspection", today_str, "3 Hours", "JH24-C-3388", "Gate 1 (Main Entrance)", "Pending", svg))
+        for u in seed_data["users"]:
+            cursor.execute("INSERT INTO users (id, username, password_hash, role, name, emp_id) VALUES (?, ?, ?, ?, ?, ?)",
+                           (u["id"], u["username"], u["password_hash"], u["role"], u["name"], u["emp_id"]))
 
-        elif name == "Deepak Mahato":
-            pass_code = "CCL-PASS-804"
-            svg = generate_qr_svg(pass_code)
-            cursor.execute('''INSERT INTO visits 
-                (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, entry_time, qr_code_svg)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (pass_code, v_id, 5, 4, "Contractor Gate Pass Verification", today_str, "5 Hours", "JH01-X-1234", "Gate 3 (Mines Entrance)", "Inside", "10:15:00", svg))
-            visit_id = cursor.lastrowid
-            cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, ?, ?, ?)",
-                           (visit_id, "Gate 3 (Mines Entrance)", "ENTRY", f"{today_str} 10:15:00", "Guard Gate 3"))
+        for v in seed_data["visitors"]:
+            cursor.execute("INSERT INTO visitors (id, name, mobile, email, gender, address, id_type, id_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                           (v["id"], v["name"], v["mobile"], v["email"], v["gender"], v["address"], v["id_type"], v["id_number"]))
 
-    conn.commit()
-    conn.close()
-    print("Seed completed successfully!")
+        for vt in seed_data["visits"]:
+            cursor.execute("INSERT INTO visits (id, pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, entry_time, exit_time, qr_code_svg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                           (vt["id"], vt["pass_code"], vt["visitor_id"], vt["employee_id"], vt["department_id"], vt["purpose"], vt["visit_date"], vt["expected_duration"], vt["vehicle_number"], vt["gate_number"], vt["status"], vt["entry_time"], vt["exit_time"], vt["qr_code_svg"]))
+
+        for g in seed_data["gate_logs"]:
+            cursor.execute("INSERT INTO gate_logs (id, visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, ?, ?, ?, ?)",
+                           (g["id"], g["visit_id"], g["gate_number"], g["action"], g["timestamp"], g["guard_name"]))
+
+        conn.commit()
+        conn.close()
+        print("Seed completed successfully!")
+    except Exception as e:
+        print("seed_initial_data SQLite exception:", e)
 
 if __name__ == '__main__':
     init_db()
