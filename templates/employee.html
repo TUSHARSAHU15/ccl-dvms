@@ -1,3 +1,4 @@
+{% extends "base.html" %}
 {% block content %}
 <div class="container-fluid px-4">
 
@@ -65,7 +66,7 @@
 </div>
 
 <script>
-  const pendingRequests = {{ pending_requests_json }};
+  const pendingRequests = {{ pending_requests_json|safe }};
 
   function renderPendingRequests() {
     const grid = document.getElementById("pendingCardsGrid");

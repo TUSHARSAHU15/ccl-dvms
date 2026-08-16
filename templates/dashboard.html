@@ -1,3 +1,4 @@
+{% extends "base.html" %}
 {% block content %}
 <div class="container-fluid px-4">
 
@@ -216,9 +217,9 @@
 </div>
 
 <script>
-  const visitsData = {{ visits_json }};
-  const employeesData = {{ employees_json }};
-  const departmentsData = {{ departments_json }};
+  const visitsData = {{ visits_json|safe }};
+  const employeesData = {{ employees_json|safe }};
+  const departmentsData = {{ departments_json|safe }};
 
   function renderAdminTable(data) {
     const tbody = document.getElementById("adminTableBody");

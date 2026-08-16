@@ -1,3 +1,4 @@
+{% extends "base.html" %}
 {% block content %}
 <div class="container-fluid px-4">
 
@@ -200,9 +201,9 @@
 </div>
 
 <script>
-  const empData = {{ employees_json }};
-  const deptData = {{ departments_json }};
-  const visitsData = {{ visits_json }};
+  const empData = {{ employees_json|safe }};
+  const deptData = {{ departments_json|safe }};
+  const visitsData = {{ visits_json|safe }};
 
   function initSecurityForm() {
     const empSel = document.getElementById("secEmpSelect");
