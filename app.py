@@ -4,10 +4,16 @@ import datetime
 import urllib.parse
 import hashlib
 import re
+import traceback
 from flask import Flask, render_template, request, redirect, url_for, jsonify, make_response, Response
 from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH, get_default_seed_dataset
 
 app = Flask(__name__)
+
+# Catch all exceptions and return traceback for cloud debugging
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return f"<html><body><h1>Flask Server Error</h1><pre>{traceback.format_exc()}</pre></body></html>", 500
 
 # Initialize database safely on startup
 try:
@@ -325,7 +331,7 @@ def api_export_csv():
         dep = depts.get(v['department_id'], {})
         csv_lines.append(f'"{v["pass_code"]}","{vis.get("name","")}","{vis.get("mobile","")}","{emp.get("name","")}","{dep.get("name","")}","{v["purpose"]}","{v["visit_date"]}","{v["gate_number"]}","{v["status"]}","{v.get("entry_time") or ""}","{v.get("exit_time") or ""}"')
         
-    return Response("\n.join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
+    return Response("\n".join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
 
 # Production WSGI application export for Gunicorn
 application = app
