@@ -20,13 +20,10 @@ class JSONCursor:
 
     def execute(self, query, params=()):
         q = query.strip().upper()
-        # Simple JSON DB query handler for fallback environment
         if q.startswith("CREATE TABLE"):
             return self
-            
         elif "SELECT COUNT(*) FROM DEPARTMENTS" in q:
             self._results = [[len(self.db.get("departments", []))]]
-            
         elif q.startswith("SELECT"):
             if "FROM DEPARTMENTS" in q:
                 rows = self.db.get("departments", [])
@@ -39,7 +36,6 @@ class JSONCursor:
                 self._results = [list(r.values()) for r in rows]
             else:
                 self._results = []
-                
         return self
 
     def fetchone(self):
@@ -87,9 +83,7 @@ def generate_qr_svg(content):
     import hashlib
     h = hashlib.sha256(content.encode('utf-8')).hexdigest()
     
-    modules = []
     size = 21
-    
     def is_finder(r, c):
         if (r < 7 and c < 7) or (r < 7 and c >= size - 7) or (r >= size - 7 and c < 7):
             if (r == 0 or r == 6 or c == 0 or c == 6 or (2 <= r <= 4 and 2 <= c <= 4)) and (r < 7 and c < 7): return True

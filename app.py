@@ -15,15 +15,46 @@ PORT = 5000
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_data_store():
-    if not HAS_SQLITE:
+    if HAS_SQLITE:
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT * FROM departments")
+            depts = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM employees")
+            employees = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM visitors")
+            visitors = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM visits ORDER BY id DESC")
+            visits = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM users")
+            users = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM gate_logs ORDER BY id DESC")
+            gate_logs = [dict(row) for row in cursor.fetchall()]
+            
+            conn.close()
+            
+            return {
+                "departments": depts,
+                "employees": employees,
+                "visitors": visitors,
+                "visits": visits,
+                "users": users,
+                "gate_logs": gate_logs
+            }
+        except Exception as e:
+            print("SQLite read error, falling back to JSON:", e)
+            
+    if os.path.exists(JSON_DB_PATH):
         with open(JSON_DB_PATH, 'r') as f:
             return json.load(f)
-    return None
-
-def save_data_store(data):
-    if not HAS_SQLITE:
-        with open(JSON_DB_PATH, 'w') as f:
-            json.dump(data, f, indent=2)
+    return {"departments": [], "employees": [], "visitors": [], "visits": [], "users": [], "gate_logs": []}
 
 def parse_post_data(environ):
     try:
@@ -64,7 +95,7 @@ def render_template(template_name, context={}):
     content = re.sub(r'\{%\s*block\s+content\s*%\s*\}', '', content)
     content = re.sub(r'\{%\s*endblock\s*%\s*\}', '', content)
     
-    # Process Jinja IF conditions (simple boolean/string match evaluation)
+    # Process Jinja IF conditions
     def eval_if(match):
         true_val = match.group(1).strip("'\"")
         cond_var = match.group(2).strip()
@@ -99,7 +130,7 @@ def render_template(template_name, context={}):
     content = re.sub(r'\{\{\s*.*?\s*\}\}', '', content)
     base = re.sub(r'\{\{\s*.*?\s*\}\}', '', base)
 
-    # Substitute content into base.html's block content section (handling any whitespace)
+    # Substitute content into base.html's block content section
     full_page = re.sub(r'\{%\s*block\s+content\s*%\s*\}[\s\S]*?\{%\s*endblock\s*%\s*\}', content, base)
     return full_page
 
@@ -156,44 +187,58 @@ def application(environ, start_response):
         form = parse_post_data(environ)
         data = get_data_store()
         
-        v_id = len(data['visitors']) + 1
-        vis_record = {
-            "id": v_id,
-            "name": form.get('name', ''),
-            "mobile": form.get('mobile', ''),
-            "email": form.get('email', ''),
-            "gender": form.get('gender', 'Male'),
-            "address": form.get('address', ''),
-            "id_type": form.get('id_type', 'Aadhaar Card'),
-            "id_number": form.get('id_number', ''),
-            "photo_data": form.get('photo_data', '')
-        }
-        data['visitors'].append(vis_record)
+        name = form.get('name', '')
+        mobile = form.get('mobile', '')
+        email = form.get('email', '')
+        gender = form.get('gender', 'Male')
+        address = form.get('address', '')
+        id_type = form.get('id_type', 'Aadhaar Card')
+        id_number = form.get('id_number', '')
+        photo_data = form.get('photo_data', '')
         
-        pass_code = f"CCL-PASS-{800 + len(data['visits']) + 1}"
+        emp_id = int(form.get('employee_id', 1))
+        dept_id = int(form.get('department_id', 1))
+        purpose = form.get('purpose', 'Official Meeting')
+        expected_duration = form.get('expected_duration', '2 Hours')
+        vehicle_number = form.get('vehicle_number', '')
+        gate_number = form.get('gate_number', 'Gate 1 (Main Entrance)')
+        
         today_str = datetime.date.today().strftime('%Y-%m-%d')
+        pass_code = f"CCL-PASS-{800 + len(data['visits']) + 1}"
+        qr_svg = generate_qr_svg(pass_code)
         
-        visit_record = {
-            "id": len(data['visits']) + 1,
-            "pass_code": pass_code,
-            "visitor_id": v_id,
-            "employee_id": int(form.get('employee_id', 1)),
-            "department_id": int(form.get('department_id', 1)),
-            "purpose": form.get('purpose', 'Official Meeting'),
-            "visit_date": today_str,
-            "expected_duration": form.get('expected_duration', '2 Hours'),
-            "vehicle_number": form.get('vehicle_number', ''),
-            "gate_number": form.get('gate_number', 'Gate 1 (Main Entrance)'),
-            "status": "Pending",
-            "entry_time": None,
-            "exit_time": None,
-            "qr_code_svg": generate_qr_svg(pass_code),
-            "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        data['visits'].append(visit_record)
-        save_data_store(data)
-        
-        response = json.dumps({"success": True, "pass_code": pass_code, "visit_id": visit_record["id"]}).encode('utf-8')
+        if HAS_SQLITE:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''INSERT INTO visitors (name, mobile, email, gender, address, photo_data, id_type, id_number)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                           (name, mobile, email, gender, address, photo_data, id_type, id_number))
+            v_id = cursor.lastrowid
+            
+            cursor.execute('''INSERT INTO visits (pass_code, visitor_id, employee_id, department_id, purpose, visit_date, expected_duration, vehicle_number, gate_number, status, qr_code_svg)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)''',
+                           (pass_code, v_id, emp_id, dept_id, purpose, today_str, expected_duration, vehicle_number, gate_number, qr_svg))
+            visit_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+        else:
+            v_id = len(data['visitors']) + 1
+            data['visitors'].append({
+                "id": v_id, "name": name, "mobile": mobile, "email": email, "gender": gender,
+                "address": address, "id_type": id_type, "id_number": id_number, "photo_data": photo_data
+            })
+            visit_id = len(data['visits']) + 1
+            data['visits'].append({
+                "id": visit_id, "pass_code": pass_code, "visitor_id": v_id, "employee_id": emp_id,
+                "department_id": dept_id, "purpose": purpose, "visit_date": today_str,
+                "expected_duration": expected_duration, "vehicle_number": vehicle_number,
+                "gate_number": gate_number, "status": "Pending", "entry_time": None, "exit_time": None,
+                "qr_code_svg": qr_svg, "created_at": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            with open(JSON_DB_PATH, 'w') as f:
+                json.dump(data, f, indent=2)
+
+        response = json.dumps({"success": True, "pass_code": pass_code, "visit_id": visit_id}).encode('utf-8')
         start_response('200 OK', [('Content-Type', 'application/json')])
         return [response]
 
@@ -206,49 +251,62 @@ def application(environ, start_response):
         pass_code = form.get('pass_code', '')
         action = form.get('action', '')
         
-        target_visit = None
-        for v in data['visits']:
-            if v['id'] == v_id or v['pass_code'] == pass_code:
-                target_visit = v
-                break
-                
-        if target_visit:
-            now_time = datetime.datetime.now().strftime('%H:%M:%S')
-            today_str = datetime.date.today().strftime('%Y-%m-%d')
-            
-            if action == 'APPROVE':
-                target_visit['status'] = 'Approved'
-            elif action == 'REJECT':
-                target_visit['status'] = 'Rejected'
-                target_visit['rejection_reason'] = form.get('reason', 'Security Policy Discrepancy')
-            elif action == 'CHECK_IN':
-                target_visit['status'] = 'Inside'
-                target_visit['entry_time'] = now_time
-                data['gate_logs'].append({
-                    "id": len(data['gate_logs']) + 1,
-                    "visit_id": target_visit['id'],
-                    "gate_number": target_visit['gate_number'],
-                    "action": "ENTRY",
-                    "timestamp": f"{today_str} {now_time}",
-                    "guard_name": "Security Guard"
-                })
-            elif action == 'CHECK_OUT':
-                target_visit['status'] = 'Completed'
-                target_visit['exit_time'] = now_time
-                data['gate_logs'].append({
-                    "id": len(data['gate_logs']) + 1,
-                    "visit_id": target_visit['id'],
-                    "gate_number": target_visit['gate_number'],
-                    "action": "EXIT",
-                    "timestamp": f"{today_str} {now_time}",
-                    "guard_name": "Security Guard"
-                })
-                
-            save_data_store(data)
-            resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
+        now_time = datetime.datetime.now().strftime('%H:%M:%S')
+        today_str = datetime.date.today().strftime('%Y-%m-%d')
+        
+        if HAS_SQLITE:
+            conn = get_db()
+            cursor = conn.cursor()
+            if v_id:
+                cursor.execute("SELECT * FROM visits WHERE id = ?", (v_id,))
+            else:
+                cursor.execute("SELECT * FROM visits WHERE pass_code = ?", (pass_code,))
+            row = cursor.fetchone()
+            if row:
+                target_visit = dict(row)
+                if action == 'APPROVE':
+                    cursor.execute("UPDATE visits SET status = 'Approved' WHERE id = ?", (target_visit['id'],))
+                elif action == 'REJECT':
+                    reason = form.get('reason', 'Security Policy Discrepancy')
+                    cursor.execute("UPDATE visits SET status = 'Rejected', rejection_reason = ? WHERE id = ?", (reason, target_visit['id']))
+                elif action == 'CHECK_IN':
+                    cursor.execute("UPDATE visits SET status = 'Inside', entry_time = ? WHERE id = ?", (now_time, target_visit['id']))
+                    cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, 'ENTRY', ?, 'Security Guard')",
+                                   (target_visit['id'], target_visit['gate_number'], f"{today_str} {now_time}"))
+                elif action == 'CHECK_OUT':
+                    cursor.execute("UPDATE visits SET status = 'Completed', exit_time = ? WHERE id = ?", (now_time, target_visit['id']))
+                    cursor.execute("INSERT INTO gate_logs (visit_id, gate_number, action, timestamp, guard_name) VALUES (?, ?, 'EXIT', ?, 'Security Guard')",
+                                   (target_visit['id'], target_visit['gate_number'], f"{today_str} {now_time}"))
+                conn.commit()
+                conn.close()
+                resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
+            else:
+                conn.close()
+                resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
         else:
-            resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
-            
+            target_visit = None
+            for v in data['visits']:
+                if v['id'] == v_id or v['pass_code'] == pass_code:
+                    target_visit = v
+                    break
+            if target_visit:
+                if action == 'APPROVE':
+                    target_visit['status'] = 'Approved'
+                elif action == 'REJECT':
+                    target_visit['status'] = 'Rejected'
+                    target_visit['rejection_reason'] = form.get('reason', 'Security Policy Discrepancy')
+                elif action == 'CHECK_IN':
+                    target_visit['status'] = 'Inside'
+                    target_visit['entry_time'] = now_time
+                elif action == 'CHECK_OUT':
+                    target_visit['status'] = 'Completed'
+                    target_visit['exit_time'] = now_time
+                with open(JSON_DB_PATH, 'w') as f:
+                    json.dump(data, f, indent=2)
+                resp = json.dumps({"success": True, "visit": target_visit}).encode('utf-8')
+            else:
+                resp = json.dumps({"success": False, "error": "Visit pass not found"}).encode('utf-8')
+                
         start_response('200 OK', [('Content-Type', 'application/json')])
         return [resp]
 
@@ -256,19 +314,30 @@ def application(environ, start_response):
     if path == '/api/add-employee' and method == 'POST':
         form = parse_post_data(environ)
         data = get_data_store()
-        emp_id = len(data['employees']) + 1
-        emp = {
-            "id": emp_id,
-            "emp_code": f"CCL{1000 + emp_id}",
-            "name": form.get('name'),
-            "department_id": int(form.get('department_id', 1)),
-            "designation": form.get('designation'),
-            "phone": form.get('phone'),
-            "email": form.get('email')
-        }
-        data['employees'].append(emp)
-        save_data_store(data)
-        resp = json.dumps({"success": True, "employee": emp}).encode('utf-8')
+        
+        emp_code = f"CCL{1000 + len(data['employees']) + 1}"
+        name = form.get('name')
+        dept_id = int(form.get('department_id', 1))
+        designation = form.get('designation')
+        phone = form.get('phone')
+        email = form.get('email')
+        
+        if HAS_SQLITE:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO employees (emp_code, name, department_id, designation, phone, email) VALUES (?, ?, ?, ?, ?, ?)",
+                           (emp_code, name, dept_id, designation, phone, email))
+            conn.commit()
+            conn.close()
+        else:
+            data['employees'].append({
+                "id": len(data['employees']) + 1, "emp_code": emp_code, "name": name,
+                "department_id": dept_id, "designation": designation, "phone": phone, "email": email
+            })
+            with open(JSON_DB_PATH, 'w') as f:
+                json.dump(data, f, indent=2)
+                
+        resp = json.dumps({"success": True}).encode('utf-8')
         start_response('200 OK', [('Content-Type', 'application/json')])
         return [resp]
 
