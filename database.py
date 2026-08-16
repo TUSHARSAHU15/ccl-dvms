@@ -65,17 +65,24 @@ class JSONDatabase:
         return JSONCursor(self.data)
 
     def commit(self):
-        with open(JSON_DB_PATH, 'w') as f:
-            json.dump(self.data, f, indent=2)
+        if os.path.exists(os.path.dirname(JSON_DB_PATH)):
+            try:
+                with open(JSON_DB_PATH, 'w') as f:
+                    json.dump(self.data, f, indent=2)
+            except Exception:
+                pass
 
     def close(self):
         self.commit()
 
 def get_db():
     if HAS_SQLITE:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            return conn
+        except Exception:
+            return JSONDatabase()
     else:
         return JSONDatabase()
 
@@ -117,113 +124,114 @@ def generate_qr_svg(content):
     return svg_content
 
 def init_db():
-    if not HAS_SQLITE:
-        print("SQLite module not detected in runtime env. Initializing JSON Database Store...")
+    try:
+        if HAS_SQLITE:
+            conn = get_db()
+            if isinstance(conn, JSONDatabase):
+                seed_json_data(conn)
+                return
+
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS departments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                area_name TEXT NOT NULL,
+                code TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            ''')
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                emp_code TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                department_id INTEGER,
+                designation TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                email TEXT NOT NULL,
+                FOREIGN KEY (department_id) REFERENCES departments (id)
+            )
+            ''')
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS visitors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                mobile TEXT NOT NULL,
+                email TEXT,
+                gender TEXT,
+                address TEXT,
+                photo_data TEXT,
+                id_type TEXT NOT NULL,
+                id_number TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            ''')
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS visits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pass_code TEXT UNIQUE NOT NULL,
+                visitor_id INTEGER NOT NULL,
+                employee_id INTEGER NOT NULL,
+                department_id INTEGER NOT NULL,
+                purpose TEXT NOT NULL,
+                visit_date TEXT NOT NULL,
+                expected_duration TEXT NOT NULL,
+                vehicle_number TEXT,
+                gate_number TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Pending',
+                entry_time TEXT,
+                exit_time TEXT,
+                qr_code_svg TEXT,
+                rejection_reason TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (visitor_id) REFERENCES visitors (id),
+                FOREIGN KEY (employee_id) REFERENCES employees (id),
+                FOREIGN KEY (department_id) REFERENCES departments (id)
+            )
+            ''')
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                emp_id INTEGER,
+                FOREIGN KEY (emp_id) REFERENCES employees (id)
+            )
+            ''')
+            
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS gate_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                visit_id INTEGER NOT NULL,
+                gate_number TEXT NOT NULL,
+                action TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                guard_name TEXT NOT NULL,
+                FOREIGN KEY (visit_id) REFERENCES visits (id)
+            )
+            ''')
+            
+            conn.commit()
+            conn.close()
+            seed_initial_data()
+        else:
+            db = JSONDatabase()
+            seed_json_data(db)
+    except Exception as e:
+        print("init_db failed on SQLite, using JSON database:", e)
         db = JSONDatabase()
         seed_json_data(db)
-        return
-
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Departments
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS departments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        area_name TEXT NOT NULL,
-        code TEXT UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-    
-    # Employees
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        emp_code TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        department_id INTEGER,
-        designation TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        FOREIGN KEY (department_id) REFERENCES departments (id)
-    )
-    ''')
-    
-    # Visitors
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS visitors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        mobile TEXT NOT NULL,
-        email TEXT,
-        gender TEXT,
-        address TEXT,
-        photo_data TEXT,
-        id_type TEXT NOT NULL,
-        id_number TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-    
-    # Visits
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS visits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        pass_code TEXT UNIQUE NOT NULL,
-        visitor_id INTEGER NOT NULL,
-        employee_id INTEGER NOT NULL,
-        department_id INTEGER NOT NULL,
-        purpose TEXT NOT NULL,
-        visit_date TEXT NOT NULL,
-        expected_duration TEXT NOT NULL,
-        vehicle_number TEXT,
-        gate_number TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'Pending',
-        entry_time TEXT,
-        exit_time TEXT,
-        qr_code_svg TEXT,
-        rejection_reason TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (visitor_id) REFERENCES visitors (id),
-        FOREIGN KEY (employee_id) REFERENCES employees (id),
-        FOREIGN KEY (department_id) REFERENCES departments (id)
-    )
-    ''')
-    
-    # System Users
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL,
-        name TEXT NOT NULL,
-        emp_id INTEGER,
-        FOREIGN KEY (emp_id) REFERENCES employees (id)
-    )
-    ''')
-    
-    # Gate Activity Logs
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS gate_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        visit_id INTEGER NOT NULL,
-        gate_number TEXT NOT NULL,
-        action TEXT NOT NULL,
-        timestamp TEXT NOT NULL,
-        guard_name TEXT NOT NULL,
-        FOREIGN KEY (visit_id) REFERENCES visits (id)
-    )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    seed_initial_data()
 
 def seed_json_data(db):
-    if len(db.data["departments"]) > 0:
+    if len(db.data.get("departments", [])) > 0:
         return
         
     print("Seeding initial CCL JSON dataset...")
@@ -353,8 +361,11 @@ def seed_json_data(db):
 
 def seed_initial_data():
     conn = get_db()
+    if isinstance(conn, JSONDatabase):
+        seed_json_data(conn)
+        return
+        
     cursor = conn.cursor()
-    
     cursor.execute("SELECT COUNT(*) FROM departments")
     if cursor.fetchone()[0] > 0:
         conn.close()
