@@ -325,7 +325,7 @@ def api_export_csv():
         dep = depts.get(v['department_id'], {})
         csv_lines.append(f'"{v["pass_code"]}","{vis.get("name","")}","{vis.get("mobile","")}","{emp.get("name","")}","{dep.get("name","")}","{v["purpose"]}","{v["visit_date"]}","{v["gate_number"]}","{v["status"]}","{v.get("entry_time") or ""}","{v.get("exit_time") or ""}"')
         
-    return Response("\n".join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
+    return Response("\n.join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
 
 # Production WSGI application export for Gunicorn
 application = app
