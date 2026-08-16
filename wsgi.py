@@ -1,6 +1,9 @@
 import os
-from app import app as application
+from app import application
 
 if __name__ == '__main__':
+    from wsgiref.simple_server import make_server
     port = int(os.environ.get('PORT', 5000))
-    application.run(host='0.0.0.0', port=port)
+    print(f"Starting WSGI server on port {port}...")
+    server = make_server('0.0.0.0', port, application)
+    server.serve_forever()
