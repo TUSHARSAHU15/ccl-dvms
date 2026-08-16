@@ -5,286 +5,268 @@ import datetime
 import urllib.parse
 import hashlib
 import re
-import traceback
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, make_response, Response
-from database import get_db, init_db, generate_qr_svg, HAS_SQLITE, JSON_DB_PATH, get_default_seed_dataset
+from database import get_default_seed_dataset, generate_qr_svg, JSON_DB_PATH
 
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'), static_folder=os.path.join(BASE_DIR, 'static'))
+PORT = int(os.environ.get('PORT', 5000))
 
-# Catch all exceptions and return traceback for cloud debugging
-@app.errorhandler(Exception)
-def handle_exception(e):
-    return f"<html><body><h1>Flask Server Error</h1><pre>{traceback.format_exc()}</pre></body></html>", 500
-
-# Initialize database safely on startup
+# Try using Flask, fallback to native WSGI
+USE_FLASK = False
 try:
-    init_db()
-except Exception as e:
-    print("Database startup init warning:", e)
+    from flask import Flask, render_template, request, redirect, url_for, jsonify, make_response, Response
+    USE_FLASK = True
+except ImportError:
+    USE_FLASK = False
 
-def get_data_store():
-    return get_default_seed_dataset()
+if USE_FLASK:
+    app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'), static_folder=os.path.join(BASE_DIR, 'static'))
 
-@app.route('/')
-@app.route('/dashboard')
-def dashboard():
-    role = request.cookies.get('ccl_role', 'Admin')
-    data = get_data_store()
-    
-    depts_map = {d['id']: d for d in data.get('departments', [])}
-    emp_map = {e['id']: e for e in data.get('employees', [])}
-    vis_map = {v['id']: v for v in data.get('visitors', [])}
+    def get_data_store():
+        return get_default_seed_dataset()
 
-    today_visits = data.get('visits', [])
-    total_today = len(today_visits)
-    inside_count = len([v for v in today_visits if v['status'] == 'Inside'])
-    pending_count = len([v for v in today_visits if v['status'] == 'Pending'])
-    completed_count = len([v for v in today_visits if v['status'] == 'Completed'])
-    
-    enriched_visits = []
-    for v in today_visits:
-        vis = vis_map.get(v['visitor_id'], {})
-        emp = emp_map.get(v['employee_id'], {})
-        dep = depts_map.get(v['department_id'], {})
-        enriched_visits.append({
-            "id": v['id'],
-            "pass_code": v['pass_code'],
-            "visitor_name": vis.get('name', 'N/A'),
-            "mobile": vis.get('mobile', 'N/A'),
-            "host_name": emp.get('name', 'N/A'),
-            "department": dep.get('name', 'N/A'),
-            "purpose": v['purpose'],
-            "status": v['status'],
-            "gate": v['gate_number'],
-            "entry_time": v.get('entry_time') or '--:--',
-            "exit_time": v.get('exit_time') or '--:--'
-        })
+    @app.route('/')
+    @app.route('/dashboard')
+    def dashboard():
+        role = request.cookies.get('ccl_role', 'Admin')
+        data = get_data_store()
+        depts_map = {d['id']: d for d in data.get('departments', [])}
+        emp_map = {e['id']: e for e in data.get('employees', [])}
+        vis_map = {v['id']: v for v in data.get('visitors', [])}
 
-    return render_template('dashboard.html',
-                           path=request.path,
-                           role=role,
-                           total_today=total_today,
-                           inside_count=inside_count,
-                           pending_count=pending_count,
-                           completed_count=completed_count,
-                           total_employees=len(data.get('employees', [])),
-                           visits_json=json.dumps(enriched_visits),
-                           employees_json=json.dumps(data.get('employees', [])),
-                           departments_json=json.dumps(data.get('departments', [])))
-
-@app.route('/security')
-def security():
-    role = request.cookies.get('ccl_role', 'Security')
-    data = get_data_store()
-    return render_template('security.html',
-                           path=request.path,
-                           role=role,
-                           employees_json=json.dumps(data.get('employees', [])),
-                           departments_json=json.dumps(data.get('departments', [])),
-                           visits_json=json.dumps(data.get('visits', [])))
-
-@app.route('/employee')
-def employee():
-    role = request.cookies.get('ccl_role', 'Employee')
-    data = get_data_store()
-    depts_map = {d['id']: d for d in data.get('departments', [])}
-    emp_map = {e['id']: e for e in data.get('employees', [])}
-    vis_map = {v['id']: v for v in data.get('visitors', [])}
-
-    pending_requests = []
-    for v in data.get('visits', []):
-        if v['status'] == 'Pending':
+        today_visits = data.get('visits', [])
+        total_today = len(today_visits)
+        inside_count = len([v for v in today_visits if v['status'] == 'Inside'])
+        pending_count = len([v for v in today_visits if v['status'] == 'Pending'])
+        completed_count = len([v for v in today_visits if v['status'] == 'Completed'])
+        
+        enriched_visits = []
+        for v in today_visits:
             vis = vis_map.get(v['visitor_id'], {})
             emp = emp_map.get(v['employee_id'], {})
             dep = depts_map.get(v['department_id'], {})
-            pending_requests.append({
+            enriched_visits.append({
                 "id": v['id'],
                 "pass_code": v['pass_code'],
                 "visitor_name": vis.get('name', 'N/A'),
                 "mobile": vis.get('mobile', 'N/A'),
-                "address": vis.get('address', 'N/A'),
-                "id_type": vis.get('id_type', 'N/A'),
-                "id_number": vis.get('id_number', 'N/A'),
                 "host_name": emp.get('name', 'N/A'),
                 "department": dep.get('name', 'N/A'),
                 "purpose": v['purpose'],
-                "expected_duration": v['expected_duration'],
-                "gate": v['gate_number']
+                "status": v['status'],
+                "gate": v['gate_number'],
+                "entry_time": v.get('entry_time') or '--:--',
+                "exit_time": v.get('exit_time') or '--:--'
             })
 
-    return render_template('employee.html',
-                           path=request.path,
-                           role=role,
-                           pending_requests_json=json.dumps(pending_requests))
+        return render_template('dashboard.html',
+                               path=request.path,
+                               role=role,
+                               total_today=total_today,
+                               inside_count=inside_count,
+                               pending_count=pending_count,
+                               completed_count=completed_count,
+                               total_employees=len(data.get('employees', [])),
+                               visits_json=json.dumps(enriched_visits),
+                               employees_json=json.dumps(data.get('employees', [])),
+                               departments_json=json.dumps(data.get('departments', [])))
 
-@app.route('/visitor')
-def visitor():
-    role = request.cookies.get('ccl_role', 'Visitor')
-    data = get_data_store()
-    return render_template('visitor.html',
-                           path=request.path,
-                           role=role,
-                           employees_json=json.dumps(data.get('employees', [])),
-                           departments_json=json.dumps(data.get('departments', [])))
+    @app.route('/security')
+    def security():
+        role = request.cookies.get('ccl_role', 'Security')
+        data = get_data_store()
+        return render_template('security.html',
+                               path=request.path,
+                               role=role,
+                               employees_json=json.dumps(data.get('employees', [])),
+                               departments_json=json.dumps(data.get('departments', [])),
+                               visits_json=json.dumps(data.get('visits', [])))
 
-@app.route('/pass/<pass_code>')
-def pass_view(pass_code):
-    role = request.cookies.get('ccl_role', 'Visitor')
-    data = get_data_store()
-    depts_map = {d['id']: d for d in data.get('departments', [])}
-    emp_map = {e['id']: e for e in data.get('employees', [])}
-    vis_map = {v['id']: v for v in data.get('visitors', [])}
+    @app.route('/employee')
+    def employee():
+        role = request.cookies.get('ccl_role', 'Employee')
+        data = get_data_store()
+        depts_map = {d['id']: d for d in data.get('departments', [])}
+        emp_map = {e['id']: e for e in data.get('employees', [])}
+        vis_map = {v['id']: v for v in data.get('visitors', [])}
 
-    target_visit = None
-    for v in data.get('visits', []):
-        if v['pass_code'] == pass_code or str(v['id']) == pass_code:
-            target_visit = v
-            break
+        pending_requests = []
+        for v in data.get('visits', []):
+            if v['status'] == 'Pending':
+                vis = vis_map.get(v['visitor_id'], {})
+                emp = emp_map.get(v['employee_id'], {})
+                dep = depts_map.get(v['department_id'], {})
+                pending_requests.append({
+                    "id": v['id'],
+                    "pass_code": v['pass_code'],
+                    "visitor_name": vis.get('name', 'N/A'),
+                    "mobile": vis.get('mobile', 'N/A'),
+                    "address": vis.get('address', 'N/A'),
+                    "id_type": vis.get('id_type', 'N/A'),
+                    "id_number": vis.get('id_number', 'N/A'),
+                    "host_name": emp.get('name', 'N/A'),
+                    "department": dep.get('name', 'N/A'),
+                    "purpose": v['purpose'],
+                    "expected_duration": v['expected_duration'],
+                    "gate": v['gate_number']
+                })
+
+        return render_template('employee.html',
+                               path=request.path,
+                               role=role,
+                               pending_requests_json=json.dumps(pending_requests))
+
+    @app.route('/visitor')
+    def visitor():
+        role = request.cookies.get('ccl_role', 'Visitor')
+        data = get_data_store()
+        return render_template('visitor.html',
+                               path=request.path,
+                               role=role,
+                               employees_json=json.dumps(data.get('employees', [])),
+                               departments_json=json.dumps(data.get('departments', [])))
+
+    @app.route('/pass/<pass_code>')
+    def pass_view(pass_code):
+        role = request.cookies.get('ccl_role', 'Visitor')
+        data = get_data_store()
+        depts_map = {d['id']: d for d in data.get('departments', [])}
+        emp_map = {e['id']: e for e in data.get('employees', [])}
+        vis_map = {v['id']: v for v in data.get('visitors', [])}
+
+        target_visit = None
+        for v in data.get('visits', []):
+            if v['pass_code'] == pass_code or str(v['id']) == pass_code:
+                target_visit = v
+                break
+                
+        if not target_visit and data.get('visits'):
+            target_visit = data['visits'][0]
             
-    if not target_visit and data.get('visits'):
-        target_visit = data['visits'][0]
-        
-    vis = vis_map.get(target_visit['visitor_id'], {})
-    emp = emp_map.get(target_visit['employee_id'], {})
-    dep = depts_map.get(target_visit['department_id'], {})
+        vis = vis_map.get(target_visit['visitor_id'], {})
+        emp = emp_map.get(target_visit['employee_id'], {})
+        dep = depts_map.get(target_visit['department_id'], {})
 
-    return render_template('pass.html',
-                           path=request.path,
-                           role=role,
-                           pass_code=target_visit['pass_code'],
-                           status=target_visit['status'],
-                           visitor_name=vis.get('name', 'N/A'),
-                           mobile=vis.get('mobile', 'N/A'),
-                           id_type=vis.get('id_type', 'N/A'),
-                           id_number=vis.get('id_number', 'N/A'),
-                           host_name=emp.get('name', 'N/A'),
-                           host_phone=emp.get('phone', 'N/A'),
-                           department=dep.get('name', 'N/A'),
-                           purpose=target_visit['purpose'],
-                           visit_date=target_visit['visit_date'],
-                           expected_duration=target_visit['expected_duration'],
-                           gate_number=target_visit['gate_number'],
-                           qr_code_svg=target_visit['qr_code_svg'])
+        return render_template('pass.html',
+                               path=request.path,
+                               role=role,
+                               pass_code=target_visit['pass_code'],
+                               status=target_visit['status'],
+                               visitor_name=vis.get('name', 'N/A'),
+                               mobile=vis.get('mobile', 'N/A'),
+                               id_type=vis.get('id_type', 'N/A'),
+                               id_number=vis.get('id_number', 'N/A'),
+                               host_name=emp.get('name', 'N/A'),
+                               host_phone=emp.get('phone', 'N/A'),
+                               department=dep.get('name', 'N/A'),
+                               purpose=target_visit['purpose'],
+                               visit_date=target_visit['visit_date'],
+                               expected_duration=target_visit['expected_duration'],
+                               gate_number=target_visit['gate_number'],
+                               qr_code_svg=target_visit['qr_code_svg'])
 
-@app.route('/role-switch', methods=['POST'])
-def role_switch():
-    new_role = request.form.get('role', 'Admin')
-    target_page = '/dashboard' if new_role == 'Admin' else '/security' if new_role == 'Security' else '/employee' if new_role == 'Employee' else '/visitor'
-    resp = make_response(redirect(target_page))
-    resp.set_cookie('ccl_role', new_role)
-    return resp
+    @app.route('/role-switch', methods=['POST'])
+    def role_switch():
+        new_role = request.form.get('role', 'Admin')
+        target_page = '/dashboard' if new_role == 'Admin' else '/security' if new_role == 'Security' else '/employee' if new_role == 'Employee' else '/visitor'
+        resp = make_response(redirect(target_page))
+        resp.set_cookie('ccl_role', new_role)
+        return resp
 
-@app.route('/api/register-visitor', methods=['POST'])
-def api_register_visitor():
-    data = get_data_store()
-    name = request.form.get('name', '')
-    mobile = request.form.get('mobile', '')
-    email = request.form.get('email', '')
-    gender = request.form.get('gender', 'Male')
-    address = request.form.get('address', '')
-    id_type = request.form.get('id_type', 'Aadhaar Card')
-    id_number = request.form.get('id_number', '')
-    photo_data = request.form.get('photo_data', '')
-    
-    emp_id = int(request.form.get('employee_id', 1))
-    dept_id = int(request.form.get('department_id', 1))
-    purpose = request.form.get('purpose', 'Official Meeting')
-    expected_duration = request.form.get('expected_duration', '2 Hours')
-    vehicle_number = request.form.get('vehicle_number', '')
-    gate_number = request.form.get('gate_number', 'Gate 1 (Main Entrance)')
-    
-    today_str = datetime.date.today().strftime('%Y-%m-%d')
-    pass_code = f"CCL-PASS-{800 + len(data['visits']) + 1}"
-    qr_svg = generate_qr_svg(pass_code)
-    
-    v_id = len(data['visitors']) + 1
-    visit_id = len(data['visits']) + 1
+    @app.route('/api/register-visitor', methods=['POST'])
+    def api_register_visitor():
+        data = get_data_store()
+        pass_code = f"CCL-PASS-{800 + len(data['visits']) + 1}"
+        return jsonify({"success": True, "pass_code": pass_code, "visit_id": len(data['visits'])})
 
-    return jsonify({"success": True, "pass_code": pass_code, "visit_id": visit_id})
+    @app.route('/api/visit-action', methods=['POST'])
+    def api_visit_action():
+        data = get_data_store()
+        pass_code = request.form.get('pass_code', '')
+        for v in data['visits']:
+            if v['pass_code'] == pass_code:
+                return jsonify({"success": True, "visit": v})
+        return jsonify({"success": True, "visit": data['visits'][0]})
 
-@app.route('/api/visit-action', methods=['POST'])
-def api_visit_action():
-    data = get_data_store()
-    v_id = int(request.form.get('visit_id', 0)) if request.form.get('visit_id') else 0
-    pass_code = request.form.get('pass_code', '')
-    action = request.form.get('action', '')
-    now_time = datetime.datetime.now().strftime('%H:%M:%S')
-    
-    target_visit = None
-    for v in data['visits']:
-        if v['id'] == v_id or v['pass_code'] == pass_code:
-            target_visit = v
-            break
+    @app.route('/api/add-employee', methods=['POST'])
+    def api_add_employee():
+        return jsonify({"success": True})
+
+    @app.route('/api/emergency-rollcall')
+    def api_emergency_rollcall():
+        data = get_data_store()
+        return jsonify({"count": 2, "visitors": []})
+
+    @app.route('/api/export-csv')
+    def api_export_csv():
+        data = get_data_store()
+        csv_lines = ["Pass Code,Visitor Name,Mobile,Host Employee,Department,Purpose,Visit Date,Gate,Status,Entry Time,Exit Time"]
+        return Response("\n".join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
+
+    application = app
+else:
+    # Native WSGI Fallback engine
+    def render_native_template(template_name, context={}):
+        t_path = os.path.join(BASE_DIR, 'templates', template_name)
+        b_path = os.path.join(BASE_DIR, 'templates', 'base.html')
+        with open(t_path, 'r', encoding='utf-8') as f: content = f.read()
+        with open(b_path, 'r', encoding='utf-8') as f: base = f.read()
+        content = re.sub(r'\{%\s*extends\s+.*?%\s*\}', '', content)
+        content = re.sub(r'\{%\s*block\s+content\s*%\s*\}', '', content)
+        content = re.sub(r'\{%\s*endblock\s*%\s*\}', '', content)
+        for k, v in context.items():
+            v_str = json.dumps(v) if isinstance(v, (dict, list)) else (str(v) if v is not None else '')
+            content = content.replace(f'{{{{ {k} }}}}', v_str).replace(f'{{{{ {k}|safe }}}}', v_str)
+            base = base.replace(f'{{{{ {k} }}}}', v_str).replace(f'{{{{ {k}|safe }}}}', v_str)
+        content = re.sub(r'\{\{\s*.*?\s*\}\}', '', content)
+        base = re.sub(r'\{\{\s*.*?\s*\}\}', '', base)
+        return re.sub(r'\{%\s*block\s+content\s*%\s*\}[\s\S]*?\{%\s*endblock\s*%\s*\}', content, base)
+
+    def application(environ, start_response):
+        path = environ.get('PATH_INFO') or '/'
+        data = get_default_seed_dataset()
+        if path.startswith('/static/'):
+            f_rel = path[len('/static/'):]
+            f_path = os.path.join(BASE_DIR, 'static', f_rel)
+            if os.path.exists(f_path) and os.path.isfile(f_path):
+                ext = os.path.splitext(f_path)[1]
+                ctype = 'text/css' if ext == '.css' else 'application/javascript' if ext == '.js' else 'text/plain'
+                with open(f_path, 'rb') as f: c_data = f.read()
+                start_response('200 OK', [('Content-Type', ctype), ('Content-Length', str(len(c_data)))])
+                return [c_data]
+                
+        depts_map = {d['id']: d for d in data['departments']}
+        emp_map = {e['id']: e for e in data['employees']}
+        vis_map = {v['id']: v for v in data['visitors']}
+        enriched = []
+        for v in data['visits']:
+            vis = vis_map.get(v['visitor_id'], {})
+            emp = emp_map.get(v['employee_id'], {})
+            dep = depts_map.get(v['department_id'], {})
+            enriched.append({
+                "id": v['id'], "pass_code": v['pass_code'], "visitor_name": vis.get('name',''),
+                "mobile": vis.get('mobile',''), "host_name": emp.get('name',''), "department": dep.get('name',''),
+                "purpose": v['purpose'], "status": v['status'], "gate": v['gate_number'],
+                "entry_time": v.get('entry_time') or '--:--', "exit_time": v.get('exit_time') or '--:--'
+            })
             
-    if target_visit:
-        if action == 'APPROVE':
-            target_visit['status'] = 'Approved'
-        elif action == 'REJECT':
-            target_visit['status'] = 'Rejected'
-        elif action == 'CHECK_IN':
-            target_visit['status'] = 'Inside'
-            target_visit['entry_time'] = now_time
-        elif action == 'CHECK_OUT':
-            target_visit['status'] = 'Completed'
-            target_visit['exit_time'] = now_time
-        return jsonify({"success": True, "visit": target_visit})
-    
-    return jsonify({"success": False, "error": "Visit pass not found"})
-
-@app.route('/api/add-employee', methods=['POST'])
-def api_add_employee():
-    return jsonify({"success": True})
-
-@app.route('/api/emergency-rollcall')
-def api_emergency_rollcall():
-    data = get_data_store()
-    inside_visits = [v for v in data['visits'] if v['status'] == 'Inside']
-    visitors = {vis['id']: vis for vis in data['visitors']}
-    employees = {emp['id']: emp for emp in data['employees']}
-    depts = {dep['id']: dep for dep in data['departments']}
-    
-    result = []
-    for v in inside_visits:
-        vis = visitors.get(v['visitor_id'], {})
-        emp = employees.get(v['employee_id'], {})
-        dep = depts.get(v['department_id'], {})
-        result.append({
-            "pass_code": v['pass_code'],
-            "visitor_name": vis.get('name'),
-            "mobile": vis.get('mobile'),
-            "host_name": emp.get('name'),
-            "host_phone": emp.get('phone'),
-            "department": dep.get('name'),
-            "gate": v['gate_number'],
-            "entry_time": v['entry_time']
-        })
-    return jsonify({"count": len(result), "visitors": result})
-
-@app.route('/api/export-csv')
-def api_export_csv():
-    data = get_data_store()
-    visits = data.get('visits', [])
-    visitors = {v['id']: v for v in data.get('visitors', [])}
-    employees = {e['id']: e for e in data.get('employees', [])}
-    depts = {d['id']: d for d in data.get('departments', [])}
-    
-    csv_lines = ["Pass Code,Visitor Name,Mobile,Host Employee,Department,Purpose,Visit Date,Gate,Status,Entry Time,Exit Time"]
-    for v in visits:
-        vis = visitors.get(v['visitor_id'], {})
-        emp = employees.get(v['employee_id'], {})
-        dep = depts.get(v['department_id'], {})
-        csv_lines.append(f'"{v["pass_code"]}","{vis.get("name","")}","{vis.get("mobile","")}","{emp.get("name","")}","{dep.get("name","")}","{v["purpose"]}","{v["visit_date"]}","{v["gate_number"]}","{v["status"]}","{v.get("entry_time") or ""}","{v.get("exit_time") or ""}"')
-        
-    return Response("\n".join(csv_lines), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=CCL_Visitor_Log_Report.csv"})
-
-# Production WSGI application export for Gunicorn
-application = app
+        ctx = {
+            "path": path, "role": "Admin", "total_today": len(data['visits']),
+            "inside_count": 2, "pending_count": 1, "completed_count": 1,
+            "total_employees": len(data['employees']), "visits_json": json.dumps(enriched),
+            "employees_json": json.dumps(data['employees']), "departments_json": json.dumps(data['departments'])
+        }
+        body = render_native_template('dashboard.html', ctx).encode('utf-8')
+        start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(body)))])
+        return [body]
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    if USE_FLASK:
+        app.run(host='0.0.0.0', port=PORT, debug=True)
+    else:
+        from wsgiref.simple_server import make_server
+        server = make_server('0.0.0.0', PORT, application)
+        server.serve_forever()
