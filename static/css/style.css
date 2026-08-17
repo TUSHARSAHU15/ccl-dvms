@@ -58,7 +58,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   letter-spacing: -0.02em;
 }
 
-/* Glassmorphic Navbar */
+/* Glassmorphic Navbar with Dynamic Fluid Typography */
 .ccl-navbar {
   background: #0F172A !important;
   border-bottom: 3px solid var(--ccl-gold-start);
@@ -74,8 +74,8 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   color: var(--ccl-navy-deep);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
-  font-size: 0.85rem;
-  padding: 4px 8px;
+  font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+  padding: 3px 8px;
   border-radius: var(--ccl-radius-sm);
   box-shadow: 0 4px 12px var(--ccl-gold-glow);
   letter-spacing: 0.5px;
@@ -83,39 +83,34 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .navbar-brand {
-  max-width: 80% !important;
+  max-width: 75% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.ccl-brand-text-container {
+  min-width: 0 !important;
   overflow: hidden !important;
 }
 
 .ccl-nav-title {
-  font-size: 0.95rem;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: clamp(0.72rem, 3.2vw, 1.05rem) !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
 }
 
 .ccl-nav-subtitle {
-  font-size: 0.72rem;
-  letter-spacing: 0.3px;
-  line-height: 1.25;
-  white-space: normal;
-  display: block;
-}
-
-@media (max-width: 575.98px) {
-  .ccl-nav-title {
-    font-size: 0.82rem !important;
-    line-height: 1.1 !important;
-  }
-  .ccl-nav-subtitle {
-    font-size: 0.58rem !important;
-    letter-spacing: 0.1px !important;
-    line-height: 1.15 !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    max-width: 210px !important;
-  }
+  font-size: clamp(0.52rem, 2.2vw, 0.72rem) !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.2px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  opacity: 0.9;
 }
 
 .navbar-toggler {
