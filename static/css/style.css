@@ -83,15 +83,39 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .navbar-brand {
-  max-width: 72% !important;
+  max-width: 80% !important;
   overflow: hidden !important;
-  white-space: nowrap !important;
 }
 
-.navbar-brand * {
-  white-space: nowrap !important;
-  text-overflow: ellipsis !important;
-  overflow: hidden !important;
+.ccl-nav-title {
+  font-size: 0.95rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ccl-nav-subtitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.3px;
+  line-height: 1.25;
+  white-space: normal;
+  display: block;
+}
+
+@media (max-width: 575.98px) {
+  .ccl-nav-title {
+    font-size: 0.82rem !important;
+    line-height: 1.1 !important;
+  }
+  .ccl-nav-subtitle {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.1px !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 210px !important;
+  }
 }
 
 .navbar-toggler {
