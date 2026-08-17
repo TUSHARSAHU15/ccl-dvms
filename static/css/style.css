@@ -35,7 +35,7 @@
 
 html, body {
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
   overflow-x: hidden !important;
   margin: 0;
   padding: 0;
@@ -60,13 +60,13 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 /* Glassmorphic Navbar */
 .ccl-navbar {
-  background: rgba(15, 23, 42, 0.98) !important;
-  backdrop-filter: blur(12px);
+  background: #0F172A !important;
   border-bottom: 3px solid var(--ccl-gold-start);
-  padding: 0.6rem 0;
+  padding: 0.5rem 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
 }
 
 .ccl-brand-badge {
@@ -83,8 +83,21 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .navbar-brand {
-  max-width: calc(100vw - 80px);
-  overflow: hidden;
+  max-width: 72% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+.navbar-brand * {
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  overflow: hidden !important;
+}
+
+.navbar-toggler {
+  flex-shrink: 0 !important;
+  padding: 4px 8px;
+  font-size: 1.1rem;
 }
 
 .ccl-nav-link {
@@ -303,6 +316,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 /* Custom Table Styling & Horizontal Scroll Containment */
 .table-responsive {
   width: 100% !important;
+  max-width: 100% !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--ccl-radius-md);
@@ -322,15 +336,15 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--ccl-border);
-  padding: 1rem;
+  padding: 0.75rem 0.85rem;
   white-space: nowrap;
 }
 
 .table-custom tbody td {
-  padding: 1rem;
+  padding: 0.75rem 0.85rem;
   vertical-align: middle;
   border-bottom: 1px solid #F1F5F9;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
@@ -365,7 +379,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 /* Responsive Polish for Mobile Phones & Tablets */
 @media (max-width: 991.98px) {
-  .ccl-navbar { padding: 0.5rem 0.75rem; }
+  .ccl-navbar { padding: 0.4rem 0.5rem; }
   .ccl-nav-link { padding: 8px 12px !important; margin-bottom: 4px; }
   .metric-card { padding: 1rem; }
   .metric-icon-box { width: 38px; height: 38px; font-size: 1.1rem; }
@@ -374,12 +388,12 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 @media (max-width: 575.98px) {
   body { font-size: 0.85rem; }
-  .fs-2 { font-size: 1.4rem !important; }
-  .fs-3 { font-size: 1.2rem !important; }
-  .fs-6 { font-size: 0.85rem !important; }
+  .fs-2 { font-size: 1.35rem !important; }
+  .fs-3 { font-size: 1.15rem !important; }
+  .fs-6 { font-size: 0.8rem !important; }
   .btn-sm { font-size: 0.75rem; padding: 4px 8px; }
-  .scanner-frame { height: 180px; }
-  .container-fluid { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+  .scanner-frame { height: 170px; }
+  .container-fluid { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
 }
 
 @media print {
