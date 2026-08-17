@@ -49,11 +49,11 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 /* Glassmorphic Navbar */
 .ccl-navbar {
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(15, 23, 42, 0.98);
   backdrop-filter: blur(12px);
-  border-bottom: 2px solid var(--ccl-gold-start);
+  border-bottom: 3px solid var(--ccl-gold-start);
   padding: 0.75rem 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .ccl-brand-badge {
@@ -69,17 +69,17 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .ccl-nav-link {
-  color: #94A3B8 !important;
+  color: #CBD5E1 !important;
   font-weight: 600;
   font-size: 0.9rem;
-  padding: 6px 14px !important;
+  padding: 8px 14px !important;
   border-radius: var(--ccl-radius-sm);
   transition: all 0.2s ease;
 }
 
 .ccl-nav-link:hover, .ccl-nav-link.active {
   color: #FFFFFF !important;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* Pulse Live Indicator */
@@ -104,15 +104,16 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   background: var(--ccl-card-bg);
   border-radius: var(--ccl-radius-lg);
   border: 1px solid var(--ccl-border);
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   box-shadow: var(--ccl-shadow-sm);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  height: 100%;
 }
 
 .metric-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   box-shadow: var(--ccl-shadow-md);
   border-color: #CBD5E1;
 }
@@ -133,13 +134,13 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 .metric-card.border-dark::before { background: var(--ccl-navy-deep); }
 
 .metric-icon-box {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--ccl-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   transition: transform 0.2s ease;
 }
 
@@ -224,7 +225,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   position: absolute;
   bottom: 25%;
   right: -20px;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 900;
   color: rgba(15, 23, 42, 0.03);
   transform: rotate(-30deg);
@@ -329,6 +330,24 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   border: none;
   box-shadow: var(--ccl-shadow-lg);
   overflow: hidden;
+}
+
+/* Responsive Polish for Mobile & Tablet */
+@media (max-width: 991.98px) {
+  .ccl-navbar { padding: 0.5rem 1rem; }
+  .ccl-nav-link { padding: 8px 12px !important; margin-bottom: 4px; }
+  .metric-card { padding: 1rem; }
+  .metric-icon-box { width: 40px; height: 40px; font-size: 1.1rem; }
+  .badge-pass-card { max-width: 100%; margin: 1rem; }
+  .table-responsive { border-radius: var(--ccl-radius-md); border: 1px solid var(--ccl-border); }
+}
+
+@media (max-width: 575.98px) {
+  body { font-size: 0.88rem; }
+  .fs-2 { font-size: 1.5rem !important; }
+  .fs-3 { font-size: 1.25rem !important; }
+  .btn-sm { font-size: 0.78rem; padding: 4px 10px; }
+  .scanner-frame { height: 190px; }
 }
 
 @media print {
