@@ -71,6 +71,48 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   z-index: 1050 !important;
 }
 
+/* User Specified Flex Header Structure */
+.header {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 75% !important;
+  box-sizing: border-box !important;
+  gap: 10px !important;
+}
+
+.logo {
+  flex-shrink: 0 !important;
+}
+
+.header-text {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.header-text h1 {
+  margin: 0 !important;
+  color: #FFFFFF !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: clamp(0.75rem, 3.2vw, 1.05rem) !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.header-text p {
+  margin: 2px 0 0 !important;
+  color: var(--ccl-gold-start) !important;
+  font-size: clamp(0.58rem, 2.4vw, 0.72rem) !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.2px !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  opacity: 0.95 !important;
+}
+
 .ccl-brand-badge {
   background: linear-gradient(135deg, var(--ccl-gold-start), var(--ccl-gold-end));
   color: var(--ccl-navy-deep);
@@ -82,22 +124,6 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   box-shadow: 0 4px 12px var(--ccl-gold-glow);
   letter-spacing: 0.5px;
   flex-shrink: 0;
-}
-
-.navbar-brand {
-  max-width: 82% !important;
-  min-width: 0 !important;
-}
-
-.ccl-nav-title {
-  font-size: clamp(0.75rem, 3.2vw, 1.05rem);
-  line-height: 1.15;
-}
-
-.ccl-nav-subtitle {
-  font-size: clamp(0.6rem, 2.4vw, 0.72rem);
-  line-height: 1.2;
-  letter-spacing: 0.2px;
 }
 
 .navbar-toggler {
